@@ -6,7 +6,7 @@ c     Last modified: 8/15
       implicit none
       include 'tornado.h'
       
-      real haz(MAX_INTEN,MAX_ATTEN, MAX_FLT, MAX_WIDTH, MAXPARAM,MAX_FTYPE) 
+      real haz(MAX_INTEN, MAX_FLT, MAX_WIDTH, MAXPARAM,MAX_FTYPE) 
       real haz1(MAX_INTEN)
       real testInten(MAX_INTEN)
       real al_segwt(MAX_FLT)
@@ -17,15 +17,17 @@ c     Last modified: 8/15
 
       integer nFtype1(MAX_FLT)
       real meanhaz(MAX_INTEN) , nonPoisson(3,MAX_INTEN), meanHaz1(MAX_FLT,MAX_INTEN), meanHaz2(MAX_INTEN)
-      integer nProb      , nDam, iDam, iDam0, jBr
+      integer nProb      , nSite, jBr
       integer indexrate(MAX_FLT,4)
+      real xFact(100)
+      integer nBR
  
       integer sssCalc(MAX_ATTENTYPE,MAX_ATTEN), scalc(MAX_ATTENTYPE,MAX_ATTEN)
       real sigFix(MAX_ATTENTYPE,MAX_ATTEN)
 
       real*8 haz_SSC(MAX_FLT, MAX_NODE, MAX_BR, MAX_INTEN) 
-      real*8 haz_GMC(MAX_ATTENTYPE, MAX_BR, MAX_INTEN) 
-      real sum, totalSegWt(MAX_FLT)
+      real*8 haz_SSC1(MAX_NODE, MAX_BR, MAX_INTEN) 
+      real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT)
 
       integer n_Dip(MAX_FLT),n_bvalue(MAX_FLT), nActRate(MAX_FLT), nSR(MAX_FLT), 
      1        nRecInt(MAX_FLT), nMoRate(MAX_FLT),
@@ -58,9 +60,9 @@ c     Last modified: 8/15
       real wt_rateMethod1(MAX_FLT,4), hazLevel, GM_ratio(100), GM0, GM1, GM2(MAX_BR)
     
       write (*,*) '*************************'
-      write (*,*) '* Tornado Code for use with *'
-      write (*,*) '*  Hazard_v5i2 code  *'
-      write (*,*) '*    Sep, 2015, NAA     *'
+      write (*,*) '* Tornado Code for use *'
+      write (*,*) '*  Hazard_v45.exe code  *'
+      write (*,*) '*    Aug, 2015, NAA     *'
       write (*,*) '*************************'
 
       write (*,*) 'Enter the input filename.'
@@ -71,12 +73,10 @@ c     Last modified: 8/15
       read (31,*) iPer
       read (31,*) contrib_min
       read (31,*) Hazlevel
-      pause 'tst'
-     
+
 c     Read Input File
-      call RdInput ( nInten,  testInten, nGM_model, nattentype, attenType, nProb, iPer,
-     2     jcalc, scalc, sigFix, sssCalc, gm_wt)
-      pause 'test out of rdInput'
+      call RdInput ( nInten,  testInten, iPer )
+      nProb = 1
 
 c     Read run file
       call Rd_Fault_Data  (nFlt, nFlt0, f_start, f_num, AttenType, 
@@ -87,6 +87,17 @@ c     Read run file
      3           nFtype, ftype_al, wt_rateMethod, al_Segwt,
      3           nRate, rateType, nBR_SSC, nSegModel, segwt, segFlag, indexRate )
        nNode_SSC = 12
+c      do iFlt=1,nFlt
+c        do ithick=1,nThick(iFlt)      
+c       write (*,'( 2i5,10f10.4)') iflt, ithick, (refMagWt(iflt,ithick, i),i=1,nRefMag(iflt,ithick))
+c       enddo
+c       enddo
+
+c      temp fix
+       do iFlt=1,nFlt
+         n_bvalue(iFlt) = 1
+         bvaluewt(iFlt,1) = 1.
+       enddo
 
 c     Set nBR_SSC1 (for output)
       do iFlt=1,nFlt
@@ -108,16 +119,16 @@ c     Set nBR_SSC1 (for output)
       read (31,'( a80)') file1
       write (*,'( a80)') file1
       open (43,file=file1,status='unknown')
+      write (43,'( 2x,''Site, Flt, Node, ln(max fact), GM ratios...'')')
 
-      read (31,*) iDam0, nDam
+      read (31,*) nSite
 
-c     Loop Over Number of Dam sites (iSite is a summary used in haz runs)
-      iSite = 1
-      do 1000 iDam = iDam0, iDam0+nDam-1
+c     Loop Over Number of  sites (iSite is a summary used in haz runs)
+      do 1000 iSite = 1,nSite
 
 c      Read the out1 file       
        write (*,'( 2x,''reading logic tree file'')')
-       call read_logichaz ( nFlt, haz, natten, nFtype1, iPer, nProb )
+       call read_out5 ( nFlt, haz, natten, nFtype1, iPer, nProb )
        write (*,'( 2x,''out of logichaz'')')
 
 c      THis is set up using brute force.  It is not efficient, but will be easier to modify to 
@@ -194,6 +205,7 @@ c           Find the total weight for this fault
               sum = sum + seg_wt1(jFlt,i) * segFlag(jFlt,i)
             enddo
             totalSegWt(jFlt) = sum
+            totalSegWt_all(jFlt) = sum
 
           enddo
 c         End of loops to reset weights to starting values
@@ -202,12 +214,14 @@ c         End of loops to reset weights to starting values
 c         Compute the mean hazard for each fault separately
           do kFlt=1,nFlt
             iPrint = 0
+            
             call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
      2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
-     3         wt_rateMethod1, gm_wt, 
-     4         nInten, nFlt, attentype, nGM_model, n_Dip, n_bvalue, nRefMag,
+     3         wt_rateMethod1,  
+     4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
+
             do i=1,nInten
               meanhaz1(kFlt,i)= haz1(i)
             enddo
@@ -222,12 +236,14 @@ c         Compute the total mean hazard for all faults
               meanhaz(i)= meanhaz1(iFlt,i) + meanhaz(i)
             enddo
           enddo
+c        write (*,'( 10e12.4)') (meanhaz(iInten), iInten=1,nInten)
 
 c      SSC, reset the weights to unity for a given branch, fault and one node at a time
        do 950 kFlt = 1, nFlt
-         write (*,'( 6i5)') iDam, nDam, kFlt, nFlt
+         write (*,'( 6i5)') iSite, nSite, kFlt, nFlt
 
         do 940 iNode=1,nNode_SSC 
+         write (*,'( 3i5)') kflt, iNode, nBR_SSC(kFlt,iNode)
          do 930, iBR=1,nBR_SSC(kFlt,iNode)
 
 c          remove the mean hazard from this fault from total mean (add to this later)
@@ -370,15 +386,17 @@ c         Compute the hazard for this set of weights
           call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
      2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
-     3          wt_rateMethod1, gm_wt, 
-     4         nInten, nFlt, attentype, nGM_model, n_Dip, n_bvalue, nRefMag,
+     3          wt_rateMethod1, 
+     4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
 
 c         Add the hazard from this fault (for this branch) to total hazard array
           do iInten=1,nInten
             haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz2(iInten) + haz1(iInten)
           enddo
-
+c          write (*,'( 10e12.4)') (haz_SSC(kFlt,iNode,iBR,iInten),iInten=1,nInten)
+c          pause 'test haz'
+          
 C   Reset the weights for this fault back to the starting weights
        jFlt = kFlt
 c           Set Dip
@@ -489,6 +507,24 @@ c        write (42,'( 20i5)') iFlt, nNode_SSC, (nBR_SSC1(iFlt,iNode),iNode=1,nNo
          enddo
         enddo
         close (42)
+c        pause ' test sensitivity'
+
+c       Separately compute hazard for the segmodels
+        iNode = 12
+        do iBR=1,nBR_SSC(1,12)
+          do iInten=1,nInten
+            haz_SSC(1,iNode,iBR,iInten) = 0.
+          enddo
+          do iFlt=1,nFlt
+            do iInten=1,nInten
+              haz_SSC(1,iNode,iBR,iInten) = haz_SSC(1,iNode,iBR,iInten) 
+     1             + meanhaz1(iFlt, iInten)*segFlag(iFlt, iBR) / totalSegWt_all(iFlt)
+            enddo
+          enddo
+          write (*,'( i5,20e12.4)') iBR, (haz_SSC(1,iNode,iBR,iInten),iInten=1,nInten)
+          write (67,'( i5,20e12.4)') iBR, (haz_SSC(1,iNode,iBR,iInten),iInten=1,nInten)
+        enddo
+          pause
 
 c      Interpolate the desired hazard level for tornado plot
 c      First find the GM for the mean hazard, interpolated to desired haz level
@@ -505,6 +541,7 @@ c      First find the GM for the mean hazard, interpolated to desired haz level
           do k=1,9
              GM_ratio(k) = 1.
           enddo
+          if ( iNode .eq. 12 .and. iFlt .gt. 1 ) goto 996
 
           k = 0
           do iBR=1,nBR_SSC(iFlt,iNode)
@@ -515,6 +552,7 @@ c      First find the GM for the mean hazard, interpolated to desired haz level
               if ( iBR .eq. 4 .and. nMoRate(iFlt) .eq. 0 ) goto 995
             endif
             if ( nBR_SSC1(iFlt,iNode) .eq. 1 ) goto 995
+            if (iNode .eq. 3) goto 995
  
 c           Interpolate
             k = k + 1
@@ -524,7 +562,7 @@ c           Interpolate
      1        .and. haz_SSC(iFlt,iNode,iBR,iInten)  .le. hazLevel ) then
                  GM1 = exp( alog(hazLevel / haz_SSC(iFlt,iNode,iBR,iInten-1)) / 
      1                  alog( haz_SSC(iFlt,iNode,iBR,iInten)/ haz_SSC(iFlt,iNode,iBR,iInten-1))
-     2                  * alog( testInten(iInten)/testInten(iInten-1) ) + alog(testInten(iInten-1)) )
+     2                  * alog( testInten(iInten)/testInten(iInten-1) ) + alog(testInten(iInten-1)) )              
 
 c                save GM from thickness, to use to normalize the maxmag
                  if (iNode .eq. 2 ) then
@@ -532,17 +570,19 @@ c                save GM from thickness, to use to normalize the maxmag
                    write (*,'( i5,f10.4)') iBr, GM1
                  endif
 
-                 if ( iNode .ne. 5 ) then
+c                 if ( iNode .ne. 5 ) then
                    GM_ratio(k) = GM1 / GM0
-                 else
-                   jBR = (iBR-1)/3 + 1
-                   GM_ratio(k) = GM1 / GM2(jBR)
-                 endif
+c                   write (*,'( 2e12.4)') GM1, GM0
+c                 else
+c                   jBR = (iBR-1)/3 + 1
+c                   GM_ratio(k) = GM1 / GM2(jBR)
+c                 endif
                  goto 995 
               endif
             enddo
  995        continue
           enddo
+ 996      continue
 
 c         Check if the range is large enought to be relevant
           ratio1 = 1 - contrib_min
@@ -553,6 +593,7 @@ c         Check if the range is large enought to be relevant
               if ( GM_ratio(iBR) .lt. ratio1 .or. GM_ratio(iBR) .gt. ratio2 ) iFlag = 1         
             endif
           enddo
+          write (*,'( 3i5, 10e12.3)')  iFlt, iNode, iFlag, (GM_ratio(iBR),iBR=1,k)
 
 c         Find max factor for this branch
           fact1 = 0.
@@ -561,23 +602,28 @@ c         Find max factor for this branch
             if ( t1 .gt. fact1 ) fact1 = t1
           enddo
 
-          if ( iFlag .eq. 1 ) write (43,'( 6x, 3i5,f10.3, 25f10.4)') iDam, iFlt, iNode,  fact1, (GM_ratio(iBR), iBR=1,9)
+          if ( iFlag .eq. 1 ) then
+            write (43,'( 3i5,f10.3, 25f10.4)') iSite, iFlt, iNode,  fact1, 
+     1                      (GM_ratio(iBR), iBR=1,nBR_SSC(iFlt,iNode) )
+          endif
          enddo
 
         enddo
 
-c       Set branch for non-poisson
-c       interpolate the meanhaz and scaled mean haz
-        do iInten=1,nInten
-          nonPoisson(1,iInten) = meanhaz(iInten) * 0.5          
-          nonPoisson(2,iInten) = meanhaz(iInten) * 1.          
-          nonPoisson(3,iInten) = meanhaz(iInten) * 2.          
-        enddo
-          do k=1,9
-             GM_ratio(k) = 1.
-          enddo
+c       Set branch for non-poisson (node 13)
+        read (31,*) nBR, (xFact(k),k=1,nBR)
 
-        do j=1,3
+c       interpolate the meanhaz and scaled mean haz        
+        do iInten=1,nInten
+          do iBR=1,nBR
+            nonPoisson(iBR,iInten) = meanhaz(iInten) * xfact(iBR) 
+          enddo         
+        enddo
+        do k=1,nBR
+             GM_ratio(k) = 1.
+        enddo
+
+        do j=1,nBR
           do iInten=2,nInten
             if ( nonPoisson(j,iInten-1) .ge. hazLevel .and. nonPoisson(j,iInten)  .le. hazLevel ) then
                  GM1 = exp( alog(hazLevel / nonPoisson(j,iInten-1)) / 
@@ -591,22 +637,16 @@ c       interpolate the meanhaz and scaled mean haz
         enddo
         iFlt=0
         iNode = 13
-        write (43,'( 6x, 3i5,25e12.4)') iDam, iFlt, iNode,  (GM_ratio(iBR), iBR=1,9)
+        
+c       Find max factor for this branch
+        fact1 = 0.
+        do iBR=1,3
+         t1 = abs (  alog(GM_ratio(iBR) ) )
+         if ( t1 .gt. fact1 ) fact1 = t1
+        enddo
+          
+        write (43,'( 3i5,f10.3, 25f10.4)') iSite, iFlt, iNode, fact1, (GM_ratio(iBR), iBR=1,3)
         call flush (43)
-
-
-c       Write out tornado for GMC
-c        read (31,'( a80)') file1
-c        open (43,file=file1,status='new')
-c        write(43,'(3x,25f12.4)') (testInten(J2),J2=1,nInten)
-c        do j=1,nAttenType
-c          do iBR=1,nGM_Model(j)
-c            write (43,'( 2i5,f8.3, 25e12.4)') jcalc(j,iBR), scalc(j,iBR), sigFix(j,iBR),  
-c     1             (haz_GMC(j,iBR,iInten ),iInten=1,nInten)
-c          enddo
-c        enddo
-c       close (43)
-
 
 
  1000 continue

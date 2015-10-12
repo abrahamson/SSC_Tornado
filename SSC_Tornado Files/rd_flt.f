@@ -8,7 +8,7 @@
      2           dipWt, bValueWt, actRateWt, wt_sr, wt_recInt, wt_MoRate, magRecurWt, 
      2           faultThickWt, refMagWt, ftmodelwt,
      3           nFtype, ftype_wt1, wt_RateMethod, al_Segwt, 
-     4           nRate, rateType, nBR_SSC, nSegModel1, segwt1, segFlag, indexRate, fTypeIndex)
+     4           nRate, rateType, nBR_SSC, nSegModel1, segwt1, segFlag, indexRate)
 
       implicit none
       include 'tornado.h'
@@ -23,7 +23,7 @@
       integer nMagRecur(MAX_FLT), nThick1(MAX_FLT), nRefMag(MAX_FLT,MAX_WIDTH), nFtypeModels(MAX_FLT)
       integer Attentype(MAX_FLT)
       integer nFtype(MAX_FLT,MAXPARAM), rateType(MAX_FLT,MAXPARAM), Nrate(MAX_FLT)
-      integer indexrate(MAX_FLT,4), fTypeIndex(MAX_FLT,MAX_FTYPE,MAX_BR)
+      integer indexrate(MAX_FLT,4)
 
       real al_segWt(MAX_FLT)
 
@@ -80,6 +80,7 @@ C.......Loop over number of individual fault segments....
 
 c         Set up segmentation cases and weights by individual faults
           nSegModel1(iFlt) = nSegModel(iFlt0)
+          nBR_SSC(iFLt,12) = nSegModel1(iFlt) 
           do iSeg=1,nSegModel1(iFlt)
             segwt1(iFlt,iSeg) = segWt(iFlt0,iSeg)
             segFlag(iFlt,iSeg) = faultFlag(iFlt0,iSeg,iflt2)
@@ -267,8 +268,6 @@ c         Read ftype Models
             read (10,*) (ftype1(iFM,k),k=1,nFtype(iFlt,iFM))
             read (10,*) (ftype_wt1(iFlt,iFM,k), k=1,nFtype(iFlt,iFM))
             nBR_SSC(iFLt,3) = nBR_SSC(iFLt,3) + nFtype(iFlt,iFM)
-c            ftpeIndex(iFlt,  ***
-            
           enddo
 
 c       End of Loop over iFlt2 - number of segments    
