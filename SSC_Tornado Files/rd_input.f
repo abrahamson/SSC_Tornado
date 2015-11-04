@@ -1,6 +1,6 @@
 c -------------------------------------------------------------------------
 
-      subroutine RdInput ( nInten,  testInten, iPer )
+      subroutine RdInput ( nInten,  testInten, iPer, nProb, specT)
 
       implicit none
       include 'tornado.h'

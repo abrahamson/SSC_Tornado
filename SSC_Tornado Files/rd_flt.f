@@ -8,7 +8,7 @@
      2           dipWt, bValueWt, actRateWt, wt_sr, wt_recInt, wt_MoRate, magRecurWt, 
      2           faultThickWt, refMagWt, ftmodelwt,
      3           nFtype, ftype_wt1, wt_RateMethod, al_Segwt, 
-     4           nRate, rateType, nBR_SSC, nSegModel1, segwt1, segFlag, indexRate)
+     4           nRate, rateType, nBR_SSC, nSegModel1, segwt1, segFlag, indexRate, fname)
 
       implicit none
       include 'tornado.h'
@@ -39,7 +39,7 @@
       integer iCoor, nFLT2, iFlt, iFlt2, nsyn, nfp, iDepthModel, iOverRideMag
       integer iFLt0, k, i, isourceType, insyn, synflag, directflag, ipt, nDownDip, ii
       integer iRecur, iThick, iThick1, iFM
-      character*80 fName1, fName 
+      character*80 fName1, fName(MAX_FLT) 
       real flat, flong, fz, sampleStep, minmag, sigArea, sigWidth
       real probAct0, magsyn, dip1, top, x(100), x2(100,100) 
       real bValue2, actRate
@@ -87,7 +87,7 @@ c         Set up segmentation cases and weights by individual faults
           enddo
 
 c         Read past name of this segment
-          read(10,'( a80)') fname
+          read(10,'( a80)') fname(iFlt)
 
           read (10,*) isourceType, attenType(iFlt), sampleStep, directflag, synflag
 

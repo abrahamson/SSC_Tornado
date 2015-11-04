@@ -43,19 +43,15 @@ c      do 900 iFlt = 1, nFlt
 
 c      Loop over fault dips
        iWidth = 0
-c       write (*,'( 2i5, 2x,''nThick'')') iFlt, nThick(iFlt)
         do 860 iThick=1,nThick(iFlt)
            
 c       Loop over crustal thickness
-c       write (*,'( 2i5, 2x,''nDip'')') iFlt, n_dip(iFlt)
        do 855 iDip=1,n_Dip(iFlt)
          iWidth = iWidth + 1
 
 c        Loop over parameter variations in same order as in out1 file
          iParam = 0
-c       write (*,'( 2i5, 2x,''nMagRecur'')') iFlt, nMagRecur(iFlt)
          do 850 imagpdf=1,nMagRecur(iFlt)
-c       write (*,'( 2i5, 2x,''nRate'')') iFlt, nRate(iFlt)
           do 840 iRate=1,nRate(iFlt)
  
 c          Set wt for this rate 
@@ -71,19 +67,13 @@ c          set shift to get the to weight for the selected method
              wt1 = MoRate_wt1(iFlt,i1) * wt_rateMethod1(iFlt,4)
            endif  
 
-c       write (*,'( 2i5, 2x,''n_bvalue'')') iFlt, n_bvalue(iFlt)
-
            if ( n_bValue(iFlt) .eq. 0 ) then
              n_bvalue(iFlt) = 1
              bvalue_wt1(iFlt,1) = 1.
            endif
            do 830 i_bValue=1,n_bvalue(iFlt)
-c       write (*,'( 2i5, 2x,''nRefMag'')') iFlt, nRefMag(iFlt,ithick)
             do 820 iRefMag=1,nRefMag(iFlt,iThick)
              iParam = iParam + 1
-
-c       write (*,'( 2i5, 2x,''nFtype1'')') iFlt, nFtype1(iFlt)
-c       pause 
 
              do 810 iFtype=1,nFtype1(iFlt)
 c        write (*,'( 2i5, 2x,''nGM_Model'')') iFlt, nGM_Model(jtype)
@@ -114,7 +104,8 @@ c           write (*, '( i5)') nInten
                do iInten=1,nInten
 c              Add to hazard for this set of weights
                  haz1(iInten) =  haz1(iInten) + haz(iInten, iFlt, iWidth, iParam, iFtype) * wt
-c                 write (*,'( 3e12.3)') haz1(iInten) , haz(iInten, iFlt, iWidth, iParam, iFtype) , wt
+c                 if ( iInten .eq. 1 ) write (*,'( 3i5,3e12.3)') iFlt, iWidth, 
+c     1                iParam, haz(iInten, iFlt, iWidth, iParam, iFtype)
                enddo
 c               pause
 c 805          continue
