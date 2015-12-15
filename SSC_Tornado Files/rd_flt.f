@@ -59,6 +59,7 @@ C.....Loop over each fault in the source file....
 
 c       Read number of segmentation models for this fault system       
         read (10,*) nSegModel(iFlt0)
+          call CheckDim ( nSegModel(iFlt0), MAX_SEG, 'MAX_SEG   ' )
         read (10,*) (segWt(iFlt0,k),k=1,nSegModel(iFlt0))
 
 c       Read total number of fault segments for this fault system
@@ -76,6 +77,8 @@ C.......Loop over number of individual fault segments....
         do iflt2=1,nflt2
 
           iFlt = iFlt + 1
+          write (*,'( i5)') iFlt 
+           
           call CheckDim ( iflt, MAX_FLT, 'MAX_FLT   ' )
 
 c         Set up segmentation cases and weights by individual faults

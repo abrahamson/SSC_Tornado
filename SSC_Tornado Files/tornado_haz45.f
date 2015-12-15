@@ -80,6 +80,7 @@ c     Last modified:  8/15
 
 c     Read Input File
       call RdInput ( nInten,  testInten, iPer, nProb, period )
+      pause 'out of rDinput'
 
 c     Read run file
       call Rd_Fault_Data  (nFlt, nFlt0, f_start, f_num, AttenType, 
@@ -89,6 +90,11 @@ c     Read run file
      3           faultThickWt, refMagWt, ftmodelwt,
      3           nFtype, ftype_al, wt_rateMethod, al_Segwt,
      3           nRate, rateType, nBR_SSC, nSegModel, segwt, segFlag, indexRate, fname )
+      write (*,'( i5)') nFlt
+      do i=1,nFlt
+        write (*,'( 2i5)') i, nSegModel(i)
+      enddo
+      pause 'nFlt'
        nNode_SSC = 12
 c      do iFlt=1,nFlt
 c        do ithick=1,nThick(iFlt)      
@@ -327,7 +333,7 @@ c         combine all of the maxmag (by thickness) into one big branch
 c         Reset the rate type weight
           if ( iNode .eq. 6 ) then
            do i=1,nBR_SSC(kFlt,6)
-             wt_RateMethod1(iFlt,i) = 0.
+             wt_RateMethod1(kFlt,i) = 0.
            enddo
            if ( iBR .eq. 1 .and. nSR(kFlt) .eq. 0 ) goto 930
            if ( iBR .eq. 2 .and. nActRate(kFlt) .eq. 0 ) goto 930
