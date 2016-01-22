@@ -136,16 +136,6 @@ c      Read the out1 file
        write (*,'( 2x,''reading logic tree file'')')
        call read_out5 ( nFlt, haz, nFtype1, iPer, nProb )
 
-c       iFtype = 1
-c       do iflt=1,nFlt
-c         do iWidth=1,n_dip(iFlt)*nTHick(iflt)
-c           do i=1,135
-c             write (65,'( 4i5,12e12.4)') iflt, iwidth, i, iftype, (haz(j,iFlt,iWidth,i,iFtype), j=1,nInten) 
-c           enddo
-c         enddo
-c       enddo
-c       pause 'test out5'        
-
 c      THis is set up using brute force.  It is not efficient, but will be easier to modify to 
 c      account for correlations later.
 
@@ -259,6 +249,9 @@ c      SSC, reset the weights to unity for a given branch, fault and one node at
 
         do 940 iNode=1,nNode_SSC 
          write (*,'( 3i5)') kflt, iNode, nBR_SSC(kFlt,iNode)
+
+         if ( iNode .eq. 12 ) goto 935
+
          do 930, iBR=1,nBR_SSC(kFlt,iNode)
 
 c          remove the mean hazard from this fault from total mean (add to this later)
@@ -381,21 +374,6 @@ c         Reset the b-value (for fault) weight
             bvalue_wt1(kFlt,iBR) = 1.
           endif
 
-c         Reset the segmentation weight (for fault) weight
-          if ( iNode .eq. 12 ) then
-            do i=1,nSegModel(kFlt)
-              seg_Wt1(kFlt,i) = 0.
-            enddo
-            seg_Wt1(kFlt,iBR) = 1.
-          endif
-
-c         Find the total weight for this segment
-          sum = 0.
-          do i=1,nSegModel(kFlt)
-            sum = sum + seg_wt1(kFlt,i) * segFlag(kFlt,i)
-          enddo
-          totalSegWt(kFlt) = sum
-
 c         Compute the hazard for this set of weights
           iPrint = 1
           call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
@@ -404,17 +382,11 @@ c         Compute the hazard for this set of weights
      3          wt_rateMethod1, 
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
-c           if ( kflt .eq. 79  ) then
-c             write (*,'( 3i5,20e12.4)') kflt, iNode, iBR, (haz1(k),k=1,nInten)
-c             pause 'test SR for Maa'
-c           endif
 
 c         Add the hazard from this fault (for this branch) to total hazard array
           do iInten=1,nInten
             haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz2(iInten) + haz1(iInten)
           enddo
-c          write (*,'( 10e12.4)') (haz_SSC(kFlt,iNode,iBR,iInten),iInten=1,nInten)
-c          pause 'test haz'
           
 C   Reset the weights for this fault back to the starting weights
        jFlt = kFlt
@@ -491,6 +463,42 @@ c         End of reset weights to starting values
 
 
  930    continue
+
+c       Skip the special case for iNode=12
+        goto 940
+
+c       Special coding for iNode=12 (segmentation model fo cascadia)
+
+ 935       do iBR=1,2
+          meanhaz(i)= meanhaz1(iFlt,i)
+
+c         Add the hazard from this fault (for this branch) to total hazard array
+          do iInten=1,nInten
+            haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz(iInten) 
+          enddo
+
+c         Only use this for the first segment of Cascadia (157)
+          if ( kFlt .eq. 157 ) then
+           write (*,'( 20e12.3)') (meanhaz1(157,k),k=1,nInten)
+           write (*,'( 20e12.3)') (meanhaz1(158,k),k=1,nInten)
+           pause 'check 157, 158'
+            do iInten=1,nInten
+
+c             Remove the two cascadia sources (157 and 158)
+              haz_SSC(kFlt,iNode,iBR,iInten) = haz_SSC(kFlt,iNode,iBR,iInten) - meanhaz1(157, iInten)
+     1            - meanhaz1(158, iInten)
+
+c             Add back in the hazard from a single segmentation of Cascadia with full weight
+              if ( iBR .eq. 1 )  then
+                haz_SSC(kFlt,iNode,iBR,iInten) =  haz_SSC(kFlt,iNode,iBR,iInten)
+     1             + meanhaz1(157, iInten) / 0.8
+              elseif ( iBR .eq. 2 ) then
+                haz_SSC(kFlt,iNode,iBR,iInten) =  haz_SSC(kFlt,iNode,iBR,iInten)
+     1             + meanhaz1(158, iInten) / 0.2
+              endif
+            enddo
+          endif
+         enddo
  940    continue
  950   continue         
 
@@ -528,21 +536,6 @@ c        write (42,'( 20i5)') iFlt, nNode_SSC, (nBR_SSC1(iFlt,iNode),iNode=1,nNo
         close (42)
 c        pause ' test sensitivity'
 
-c       Separately compute hazard for the segmodels
-        iNode = 12
-        do iBR=1,nBR_SSC(1,12)
-          do iInten=1,nInten
-            haz_SSC(1,iNode,iBR,iInten) = 0.
-          enddo
-          do iFlt=1,nFlt
-            do iInten=1,nInten
-              haz_SSC(1,iNode,iBR,iInten) = haz_SSC(1,iNode,iBR,iInten) 
-     1             + meanhaz1(iFlt, iInten)*segFlag(iFlt, iBR) / totalSegWt_all(iFlt)
-            enddo
-          enddo
-c          write (*,'( i5,20e12.4)') iBR, (haz_SSC(1,iNode,iBR,iInten),iInten=1,nInten)
-c          write (67,'( i5,20e12.4)') iBR, (haz_SSC(1,iNode,iBR,iInten),iInten=1,nInten)
-        enddo
 
 c      Interpolate the desired hazard level for tornado plot
 c      First find the GM for the mean hazard, interpolated to desired haz level
@@ -604,7 +597,7 @@ c                 endif
           enddo
  996      continue
 
-c         Check if the range is large enought to be relevant
+c         Check if the range is large enough to be relevant
           ratio1 = 1 - contrib_min
           ratio2 = 1 + contrib_min
           iFlag = 0
