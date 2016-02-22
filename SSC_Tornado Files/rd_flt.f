@@ -77,7 +77,6 @@ C.......Loop over number of individual fault segments....
         do iflt2=1,nflt2
 
           iFlt = iFlt + 1
-          write (*,'( i5)') iFlt 
            
           call CheckDim ( iflt, MAX_FLT, 'MAX_FLT   ' )
 

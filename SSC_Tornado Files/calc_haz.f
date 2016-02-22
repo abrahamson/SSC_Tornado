@@ -35,8 +35,16 @@ c     initialize hazard
         haz1(i) = 0.
       enddo
 
-c     Compute hazard for the kflt only
       iFlt = kFlt
+
+      
+      if ( iPrint .eq. 1 ) then
+        write (*,'( 10i5)') kFlt, nThick(iFlt), n_dip(iFlt),nMagRecur(iFlt), 
+     1   nRate(iFlt), nFtype1(iFlt)
+        pause 'test 1'
+      endif
+
+c     Compute hazard for the kflt only
 c      do 900 iFlt = 1, nFlt
 
       sumwt = 0.
@@ -59,6 +67,7 @@ c          set shift to get the to weight for the selected method
            i1 = iRate - indexRate(iFlt,rateType(iFlt,iRate))
            if ( rateType(iFlt,iRate) .eq. 1 ) then
              wt1 = wt_sr1(iFlt,i1) * wt_rateMethod1(iFlt,1)
+             if (iprint .eq. 1 ) write (*,'( 3f10.4)') wt1 , wt_sr1(iFlt,i1) , wt_rateMethod1(iFlt,1)
             elseif ( rateType(iFlt,iRate) .eq. 2 ) then
              wt1 = actRate_Wt1(iFlt,i1) * wt_rateMethod1(iFlt,2)
            elseif ( rateType(iFlt,iRate) .eq. 3 ) then
@@ -71,6 +80,12 @@ c          set shift to get the to weight for the selected method
              n_bvalue(iFlt) = 1
              bvalue_wt1(iFlt,1) = 1.
            endif
+      if ( iPrint .eq. 1 ) then
+        write (*,'( 10i5)') kFlt, n_bvalue(iFlt), nRefMag(iFlt,iThick)
+        pause 'test 2'
+      endif
+
+
            do 830 i_bValue=1,n_bvalue(iFlt)
             do 820 iRefMag=1,nRefMag(iFlt,iThick)
              iParam = iParam + 1
@@ -85,27 +100,28 @@ c              Set the weight for this set of parameters (epistemic)
      3          * totalSegWt(iFlt)
                sumwt = sumwt + wt
 
-c                   write (*,'( 5i5,20e12.4)') iFLt, iAtten, iWidth, 
-c     1                 iParam, iFtype, haz(1,iAtten, iFlt, iWidth, iParam, iFtype)
-c                   write (*,'( 5i5,20f10.4)') iFLt, iAtten, iWidth, iParam, iFtype, 
-c     1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
-c     2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
-c     3              ,  totalSegWt(iFlt), wt
-c                   write (*,'( f10.5, 2x,''wt for branch'')') wt
-c                   pause
+       if (iPRint .eq. 1 ) then
+       
+                   write (*,'( 5i5,20f10.4)') iFLt, iAtten, iWidth, iParam, iFtype, 
+     1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
+     2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
+     3              ,  totalSegWt(iFlt), wt
+                   write (*,'( f10.5, 2x,''wt for branch'')') wt
+                   pause
+       endif
         
 c              Add weight for aleatory rupture segmentation 
                wt = wt * al_segwt(iFlt) 
 
-c               if ( iPRint .eq. 1 ) write (65,'( 5i5, f10.4,10e12.4)') iAtten, iFlt, iWidth, iParam, iFtype, wt, 
-c     1               (haz(iInten, iFlt, iWidth, iParam, iFtype),iInten=1,nInten)
+               if ( iPRint .eq. 1 ) write (65,'( 5i5, f10.4,10e12.4)') iAtten, iFlt, iWidth, iParam, iFtype, wt, 
+     1               (haz(iInten, iFlt, iWidth, iParam, iFtype),iInten=1,nInten)
 
 c           write (*, '( i5)') nInten
                do iInten=1,nInten
 c              Add to hazard for this set of weights
                  haz1(iInten) =  haz1(iInten) + haz(iInten, iFlt, iWidth, iParam, iFtype) * wt
-c                 if ( iInten .eq. 1 ) write (*,'( 3i5,3e12.3)') iFlt, iWidth, 
-c     1                iParam, haz(iInten, iFlt, iWidth, iParam, iFtype)
+                 if ( iPrint .eq. 1 ) write (*,'( 3i5,3e12.3)') iFlt, iWidth, 
+     1                iParam, haz(iInten, iFlt, iWidth, iParam, iFtype), wt, haz1(iInten)
                enddo
 c               pause
 c 805          continue
