@@ -1,7 +1,3 @@
-
-
-
- 
       subroutine Rd_Fault_Data  (nFltTotal, nFlt0, f_start, f_num, AttenType, 
      1           n_Dip, n_bValue, nActRate,  nSR,   nRecInt,   nMoRate,   nMagRecur,  
      1           nThick1,      nRefMag,  nFtypeModels,

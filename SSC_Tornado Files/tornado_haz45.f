@@ -21,7 +21,7 @@ c     Last modified:  8/15
       integer nProb      , nSite, jBr
       integer indexrate(MAX_FLT,4)
       real xFact(100), xx
-      integer nBR
+      integer nBR, iSkip
  
       integer sssCalc(MAX_ATTENTYPE,MAX_ATTEN), scalc(MAX_ATTENTYPE,MAX_ATTEN)
       real sigFix(MAX_ATTENTYPE,MAX_ATTEN)
@@ -51,10 +51,10 @@ c     Last modified:  8/15
       integer nBR_SSC1(MAX_FLT,MAX_NODE)
       integer j, k, iThick, nThick(MAX_FLT), iFM, iDip, imagRec, iThick1
       integer iSR, iAct, iRecInt, iMo, ib, j2, iSum
-      real gm_wt(4,MAX_ATTEN), seg_wt1(MAX_FLT,MAX_SEG)
+      real seg_wt1(MAX_FLT,MAX_SEG)
       integer nSegModel(MAX_FLT), segFlag(MAX_FLT, MAX_SEG)
       real ratio1, ratio2
-      integer iFtype, iWidth
+      integer iFtype, iWidth, node_12_flag(MAX_FLT), nSegModel1(MAX_FLT)
       real period
 
       real dip_Wt1(MAX_FLT,MAXPARAM), bValue_Wt1(MAX_FLT,MAXPARAM), actRate_Wt1(MAX_FLT,MAXPARAM), 
@@ -62,10 +62,11 @@ c     Last modified:  8/15
      1     magRecur_Wt1(MAX_FLT,MAXPARAM), faultThick_Wt1(MAX_FLT,MAXPARAM), 
      2     refMag_Wt1(MAX_FLT,MAX_Width, MAXPARAM), ftype_wt1(MAX_FLT,MAXPARAM)
       real wt_rateMethod1(MAX_FLT,4), hazLevel, GM_ratio(100), GM0, GM1, GM2(MAX_BR)
+      integer iFlt0, fltSys_flag(MAX_FLT), iflt1, iflt2
     
       write (*,*) '*************************'
       write (*,*) '* Tornado Code for use *'
-      write (*,*) '*  Hazard_v45.exe code  *'
+      write (*,*) '*  with Hazard_v45 *'
       write (*,*) '*    Feb, 2016, NAA     *'
       write (*,*) '*************************'
 
@@ -92,12 +93,26 @@ c     Read run file
      3           nRate, rateType, nBR_SSC, nSegModel, segwt, segFlag, indexRate, fname )
       write (*,'( i5)') nFlt
 
-       nNode_SSC = 12
-c      do iFlt=1,nFlt
-c        do ithick=1,nThick(iFlt)      
-c       write (*,'( 2i5,10f10.4)') iflt, ithick, (refMagWt(iflt,ithick, i),i=1,nRefMag(iflt,ithick))
-c       enddo
-c       enddo
+c     sources are indexed in two ways
+c     When the out5 file is read, the sources are just numbered 1 to NFLT
+c     For segmentation, the source are number 1 to nFLT0 for the independent groups of sources
+c     THe sources included in each group are inducated f_start and f_num
+c        f_start(k) gives the index (1 to NFLT) of the first source in group k
+c        f_num(k) is the number of sources in group k
+
+c     Set flag to indicate if this fault is the first in the segmentation  model 
+      do iFlt=1,nFlt
+        node_12_flag(iFlt) = 0
+      enddo  
+      do iFlt0=1,nFlt0
+        iFlt = f_start(iFlt0)
+        node_12_flag(iFlt) = 1 
+        nSegModel1(iFlt) = nSegModel(iFlt0)
+        fltsys_flag(iFlt) = iFlt0
+      enddo   
+
+c     Set the total number of nodes in the SSC
+      nNode_SSC = 12
 
 c     Set nBR_SSC1 (for output)
       do iFlt=1,nFlt
@@ -136,126 +151,60 @@ c      Read the out1 file
 c      THis is set up using brute force.  It is not efficient, but will be easier to modify to 
 c      account for correlations later.
 
-c         First, reset the SSC Weights to starting value for all faults
-          do jFlt=1,nFlt           
+c      First, reset the SSC Weights to starting value for all faults
+       do jFlt=1,nFlt           
+         call Set_starting_wts ( n_dip, dipWt, dip_wt1, 
+     1     nThick, faultThickWt, faultThick_Wt1, nRefMag, refMagWt, refMag_Wt1,
+     2     n_bValue, bvalueWt, bvalue_Wt1, nMagRecur, magRecurWt, magRecur_Wt1,
+     3     nFtypeModels, nFtype, ftModelwt, ftype_al, ftype_wt1,
+     4     nSegModel, segwt, seg_wt1, wt_RateMethod, wt_RateMethod1,
+     5     nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
+     6     nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
+     8     segFlag, totalSegWt, totalSegWt_all, jFlt )
+       enddo
 
-c           Set Dip
-            do j=1,n_Dip(jFlt)
-              dip_Wt1(jFlt,j) = dipWt(jFlt,j)
-            enddo
-
-c          Set thick and refMag
-           do iThick=1,nThick(jFlt)
-             faultThick_Wt1(jFlt,iThick) = faultThickWt(jFlt,iThick)
-             do j=1,nRefMag(jFlt,iThick) 
-               refMag_Wt1(jFlt,iThick,j)  = refMagWt(jFlt,iThick,j) 
-             enddo
-           enddo
-
-c          Set b-values
-           do j=1,n_bValue(jFlt)
-             bvalue_Wt1(jFlt,j) = bvalueWt(jFlt,j)
-           enddo
-
-c          Set mag recur
-           do j=1,nMagRecur(jFlt)
-             magRecur_Wt1(jFlt,j)  = magRecurWt(jFlt,j) 
-           enddo
-
-c          Set ftype
-           k = 0
-           do iFM=1,nFtypeModels(jFlt)
-             do j=1,nFtype(jFlt,IFM)
-               k = k + 1
-               ftype_wt1 (jFlt,k) =  ftModelwt(jFlt, iFM) * ftype_al(jFlt,iFM,k)
-             enddo
-           enddo
-
-c          set segmentation
-           do i=1,nSegModel(jFlt)
-            seg_wt1(jFlt,i)= segwt(jFlt,i)
-           enddo
-
-c          Set Activity Rate Method weights
-           do i=1,4
-             wt_RateMethod1(jFlt,i) = wt_RateMethod(jFLt,i)
-           enddo
-
-c         Set SR weights 
-           do i=1,nSR(jFLt)
-             wt_SR1(jFLT,i) = wt_SR(jFlt,i)
-           enddo
-
-c          Set Activity Rate weights
-           do i=1,nActRate(jFLt)
-             actRate_wt1(jFLT,i) = actRateWt(jFlt,i)
-           enddo
-
-c          Set Rec Int weights
-           do i=1,nRecInt(jFLt)
-             wt_RecInt1(jFLT,i) = wt_recInt(jFlt,i)
-           enddo
-
-c          Set moment rate weights
-           do i=1,nMoRate(jFLt)
-             MoRate_wt1(jFLT,i) = wt_MoRate(jFLT,i) 
-           enddo
-
-c           Find the total weight for this fault
-            sum = 0.
-            do i=1,nSegModel(jFlt)
-              sum = sum + seg_wt1(jFlt,i) * segFlag(jFlt,i)
-            enddo
-            totalSegWt(jFlt) = sum
-            totalSegWt_all(jFlt) = sum
-
-          enddo
-c         End of loops to reset weights to starting values
-
-
-c         Compute the mean hazard for each fault separately
-          do kFlt=1,nFlt
-            iPrint = 0
-c            if ( kFLt .eq. 4 ) then
-c              iprint = 1
-c              write (*,'( f10.4)') (wt_RateMethod1(kFlt,i) ,i=1,4) 
-c            endif          
-
-            call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
-     1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
-     2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
+c      Compute the mean hazard for each fault separately
+       do kFlt=1,nFlt
+         iPrint = 0
+         call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
+     1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, 
+     2         magRecur_Wt1, faultThick_Wt1, refMag_Wt1, ftype_wt1,
      3         wt_rateMethod1,  
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
+        
+        write (*,'( i5,10e12.4)') kflt, (haz1(i),i=1,nInten)
+c        Save the mean hazard for this flt to new array (meanhaz1)
+         do i=1,nInten
+           meanhaz1(kFlt,i)= haz1(i)
+         enddo
+       enddo
+        pause
 
-            do i=1,nInten
-              meanhaz1(kFlt,i)= haz1(i)
-            enddo
-          enddo
-
-c         Compute the total mean hazard for all faults
-            do i=1,nInten
-              meanhaz(i)= 0.
-            enddo
-          do iFlt=1,nFlt
-            do i=1,nInten
-              meanhaz(i)= meanhaz1(iFlt,i) + meanhaz(i)
-            enddo
-          enddo
-c        write (*,'( 10e12.4)') (meanhaz(iInten), iInten=1,nInten)
+c      Compute the total mean hazard for all faults (meanhaz)
+       do i=1,nInten
+         meanhaz(i)= 0.
+       enddo
+       do iFlt=1,nFlt
+         do i=1,nInten
+           meanhaz(i)= meanhaz1(iFlt,i) + meanhaz(i)
+         enddo
+       enddo
 
 c      SSC, reset the weights to unity for a given branch, fault and one node at a time
        do 950 kFlt = 1, nFlt
-         write (*,'( 6i5)') iSite, nSite, kFlt, nFlt
+c         write (*,'( 6i5)') iSite, nSite, kFlt, nFlt
 
         do 940 iNode=1,nNode_SSC 
+c        Set special handling for segmentation (Node=12)
          if (iNode .eq. 12 ) goto 935
          
-         write (*,'( 3i5)') kflt, iNode, nBR_SSC(kFlt,iNode)
+c         write (*,'( 3i5)') kflt, iNode, nBR_SSC(kFlt,iNode)
          do 930, iBR=1,nBR_SSC(kFlt,iNode)
 
-
-c          remove the mean hazard from this fault from total mean (add to this later)
+c          Remove the mean hazard from this fault from total mean 
+c          The mean haz w/o this fault is called meanhaz2
+c          We will add the hazard from this fault back in later after changing the weights
            do iInten=1,nInten
              meanhaz2(iInten) = meanhaz(iInten) - meanhaz1(kFlt,iInten)
            enddo
@@ -263,272 +212,139 @@ c          remove the mean hazard from this fault from total mean (add to this l
 c         Now, set weights to unity for the Node and Branch of interest for fault kFlt
 c         SSC branches: 1 = Dip, 2=crustal thick, 3=ftype, 4=magpdf, 5=maxmag,  6=RateType, 7=SR, 8=a-value, 9=paleo, 
 c                       10=Moment, 11=b_value flt, 12=segModel
-c         Reset the dip weight
-          if ( iNode .eq. 1 ) then
-            do  iDip=1,n_Dip(kFlt)
-              dip_wt1(kFlt,iDip) = 0.
-            enddo
-            dip_wt1(kFlt,iBR) = 1.
-          endif
 
-c         Reset the crustal thickness weight
-          if ( iNode .eq. 2 ) then
-            do  iThick=1,nThick(kFlt)
-              faultThick_Wt1(kFlt,iThick) = 0.
-            enddo
-            faultThick_Wt1(kFlt,iBR) = 1.
-          endif
+         call Set_new_wts ( n_dip, dipWt, dip_wt1, 
+     1     nThick, faultThickWt, faultThick_Wt1, nRefMag, refMagWt,refMag_Wt1,
+     2     n_bValue, bvalueWt, bvalue_Wt1, nMagRecur, magRecurWt, magRecur_Wt1,
+     3     nFtypeModels, nFtype, ftModelwt, ftype_al, ftype_wt1,
+     4     nSegModel, segwt, seg_wt1, wt_RateMethod, wt_RateMethod1,
+     5     nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
+     6     nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
+     7     segFlag, totalSegWt, totalSegWt_all, kFlt, iNode, iBR, nBR_SSC, iSkip )
 
-c         Reset the ftype Model weight (This is the product of the ftmodelwt and the aleatory wt)
-          if ( iNode .eq. 3 ) then
-           k = 0
-           do iFM=1,nFtypeModels(kFlt)
-            do j=1,nFtype(kFlt,IFM)
-              k = k + 1
-              if ( iFM .eq. iBR ) then 
-                ftype_wt1 (kFlt,k) =  ftype_al(kFlt,iFM,k)
-              else
-                ftype_wt1 (kFlt,k) =  0.
-              endif
-            enddo
-           enddo
-          endif
+c        Check if there is no branch for this node (activity method not used)
+         if ( iSkip .eq. 0 ) goto 925
 
-c         Reset the magpdf Model weight
-          if ( iNode .eq. 4 ) then
-            do iMagRec=1,nmagRecur(kFlt)
-              magRecur_Wt1(kFlt,iMagRec) = 0.
-            enddo
-            magRecur_Wt1(kFlt,iBR) = 1. 
-         endif
-
-c         Reset the maxmag weight
-c         combine all of the maxmag (by thickness) into one big branch
-          if ( iNode .eq. 5 ) then
-            do ithick1=1,nThick(kFlt)
-              do j=1,nRefMag(kFlt,ithick1)
-               refMag_Wt1(kFlt,iThick1,j) = 0.
-               enddo
-            enddo
-            k = 0
-             do ithick1=1,nThick(kFlt)
-              do j=1,nRefMag(kFlt,ithick1)
-                k = k + 1
-                if ( k .eq. iBR) then
-                  refMag_Wt1(kFlt,iThick1,j) = 1.  
-                  jBR = (iBR-1)/3 + 1
-                  faultThick_Wt1(kFlt,jBR) = 1.
-                endif
-              enddo
-            enddo
-           
-          endif
-
-c         Reset the rate type weight
-          if ( iNode .eq. 6 ) then
-           do i=1,nBR_SSC(kFlt,6)
-             wt_RateMethod1(kFlt,i) = 0.
-           enddo
-           wt_RateMethod1(kFlt,iBR) = 1.
-           
-           if ( iBR .eq. 1 .and. nSR(kFlt) .eq. 0 ) goto 925
-           if ( iBR .eq. 2 .and. nActRate(kFlt) .eq. 0 ) goto 925
-           if ( iBR .eq. 3 .and. nRecInt(kFlt) .eq. 0 ) goto 925
-           if ( iBR .eq. 4 .and. nMoRate(kFlt) .eq. 0 ) goto 925
-          endif
-
-c         Reset the SR weight
-          if ( iNode .eq. 7 ) then
-            do iSR=1,nSR(kFLt)
-             wt_sr1(kFlt,iSR) = 0.
-            enddo
-            wt_SR1(kFlt,iBR) = 1.
-          endif
-
-c         Reset the a-value weight
-          if ( iNode .eq. 8 ) then
-            do iAct=1,nActRate(kFLt)
-             actRate_wt1(kFlt,iAct) = 0.
-            enddo
-            actrate_Wt1(kFlt,iBR) = 1.
-          endif
-
-c         Reset the paleo weight
-          if ( iNode .eq. 9 ) then
-            do iRecInt=1,nRecInt(kFLt)
-             wt_recInt1(kFlt,iRecInt) = 0.
-            enddo
-            wt_recInt1(kFlt,iBR) = 1.
-          endif
-
-c         Reset the Moment-rate weight
-          if ( iNode .eq. 10 ) then
-            do iMo=1,nMoRate(kFLt)
-             MoRate_wt1(kFlt,iMo) = 0.
-            enddo
-            MoRate_wt1(kFlt,iBR) = 1.
-          endif
-
-c         Reset the b-value (for fault) weight
-          if ( iNode .eq. 11 ) then
-            do ib=1,n_bvalue(kFLt)
-             bvalue_wt1(kFlt,ib) = 0.
-            enddo
-            bvalue_wt1(kFlt,iBR) = 1.
-          endif
-
-c         Reset the segmentation weight (for fault) weight
-          if ( iNode .eq. 12 ) then
-            do i=1,nSegModel(kFlt)
-              seg_Wt1(kFlt,i) = 0.
-            enddo
-            seg_Wt1(kFlt,iBR) = 1.
-          endif
-
-c         Find the total weight for this segment
-          sum = 0.
-          do i=1,nSegModel(kFlt)
-            sum = sum + seg_wt1(kFlt,i) * segFlag(kFlt,i)
-          enddo
-          totalSegWt(kFlt) = sum
-
-c         Compute the hazard for this set of weights
-          iPrint = 0
-c        if ( kflt .eq. 4 .and. iNode .eq. 7) then
-c            iPrint = 1
-c          endif
-          call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
+c        Compute the hazard for this set of weights
+         iPrint = 0
+         call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
      2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
      3          wt_rateMethod1, 
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
 
-c         Add the hazard from this fault (for this branch) to total hazard array
-          do iInten=1,nInten
+c        Add the hazard from this fault (for this branch) to total hazard array
+         do iInten=1,nInten
             haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz2(iInten) + haz1(iInten)
-          enddo
-c          write (*,'( 10e12.4)') (haz_SSC(kFlt,iNode,iBR,iInten),iInten=1,nInten)
-c          pause 'test haz'
+         enddo
+         if ( iNode .eq. 7 ) then
+           if ( kFlt .ge. 31 .and. kFlt .le. 33 ) write (*,'( 3i7,10f10.3)') kFLt, iNode, iBR, 
+     1    (haz_SSC(kFlt,iNode,iBR,i)/meanhaz(i),i=1,nInten)
+         endif
 
  925    continue
          
-C   Reset the weights for this fault back to the starting weights
-       jFlt = kFlt
-c           Set Dip
-            do j=1,n_Dip(jFlt)
-              dip_Wt1(jFlt,j) = dipWt(jFlt,j)
-            enddo
-
-c          Set thick and refMag
-           do iThick=1,nThick(jFlt)
-             faultThick_Wt1(jFlt,iThick) = faultThickWt(jFlt,iThick)
-             do j=1,nRefMag(jFlt,iThick) 
-               refMag_Wt1(jFlt,iThick,j)  = refMagWt(jFlt,iThick,j) 
-             enddo
-           enddo
-
-c          Set b-values
-           do j=1,n_bValue(jFlt)
-             bvalue_Wt1(jFlt,j) = bvalueWt(jFlt,j)
-           enddo
-
-c          Set mag recur
-           do j=1,nMagRecur(jFlt)
-             magRecur_Wt1(jFlt,j)  = magRecurWt(jFlt,j) 
-           enddo
-
-c          Set ftype
-           k = 0
-           do iFM=1,nFtypeModels(jFlt)
-             do j=1,nFtype(jFlt,IFM)
-               k = k + 1
-               ftype_wt1 (jFlt,k) =  ftModelwt(jFlt, iFM) * ftype_al(jFlt,iFM,k)
-             enddo
-           enddo
-
-c          set segmentation
-           do i=1,nSegModel(jFlt)
-            seg_wt1(jFlt,i)= segwt(jFlt,i)
-           enddo
-
-c          Set Activity Rate Method weights
-           do i=1,4
-             wt_RateMethod1(jFlt,i) = wt_RateMethod(jFLt,i)
-           enddo
-
-c         Set SR weights 
-           do i=1,nSR(jFLt)
-             wt_SR1(jFLT,i) = wt_SR(jFlt,i)
-           enddo
-
-c          Set Activity Rate weights
-           do i=1,nActRate(jFLt)
-             actRate_wt1(jFLT,i) = actRateWt(jFlt,i)
-           enddo
-
-c          Set Rec Int weights
-           do i=1,nRecInt(jFLt)
-             wt_RecInt1(jFLT,i) = wt_recInt(jFlt,i)
-           enddo
-
-c          Set moment rate weights
-           do i=1,nMoRate(jFLt)
-             MoRate_wt1(jFLT,i) = wt_MoRate(jFLT,i) 
-           enddo
-
-c           Find the total weight for this fault
-            sum = 0.
-            do i=1,nSegModel(jFlt)
-              sum = sum + seg_wt1(jFlt,i) * segFlag(jFlt,i)
-            enddo
-            totalSegWt(jFlt) = sum
-
-c         End of reset weights to starting values
-
-
+C       Reset the weights for this fault back to the starting weights
+        
+         call Set_starting_wts ( n_dip, dipWt, dip_wt1, 
+     1     nThick, faultThickWt, faultThick_Wt1, nRefMag, refMagWt,refMag_Wt1,
+     2     n_bValue, bvalueWt, bvalue_Wt1, nMagRecur, magRecurWt, magRecur_Wt1,
+     3     nFtypeModels, nFtype, ftModelwt, ftype_al, ftype_wt1,
+     4     nSegModel, segwt, seg_wt1, wt_RateMethod, wt_RateMethod1,
+     5     nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
+     6     nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
+     7     segFlag, totalSegWt, totalSegWt_all, kFlt )
 
  930    continue
+c       End loop on iBR 
 
+c       Skip past special coding for node 12
         goto 940
 
-c       Special coding for iNode=12 (segmentation model fo cascadia)
- 935     continue
-c        write (*,'( 10i5)') kFlt, nBR_SSC(kFlt,iNode)
-c        pause 'nBr'
-        do iBR=1,2
+ 935    continue
+c       Special coding for iNode=12 (segmentation model)
 
-c         As default, set to total hazard (no sensitivity) 
+c       Set the number of branches for the segmenation node
+c       If 1 branch, then set to mean hazard
+        if ( node_12_flag(kFlt) .eq. 0 ) then
+          nBR_SSC(kFlt,12) = 1
+          nBR_SSC1(kFlt,12) = 1
           do iInten=1,nInten
             haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz(iInten) 
           enddo
+          goto 940
+        else
+          nBR_SSC(kFlt,12) = nSegModel1(kFlt)
+          nBR_SSC1(kFlt,12) = nSegModel1(kFlt)
+        endif
 
-c         Only use this for the first segment of Cascadia (157)
-          if ( kFlt .eq. 157 ) then
-c           write (*,'( 20e12.3)') (meanhaz1(157,k),k=1,nInten)
-c           write (*,'( 20e12.3)') (meanhaz1(158,k),k=1,nInten)
-c           pause 'check 157, 158'
-            do iInten=1,nInten
+c       Remove the hazard from faults in this fault group from the total haz
+        do i=1,nInten
+           meanhaz2(i)= meanhaz(i) 
+        enddo
+        iflt1 = f_start(fltsys_flag(kFlt))
+        iflt2 = f_num(fltsys_flag(kFlt))+iFlt1-1
+        do iFlt=iFlt1,iFlt2
+          do i=1,nInten
+           meanhaz2(i)= meanhaz2(i) - meanhaz1(iFlt,i)
+          enddo
+        enddo
+c        write (*,'( 12e12.4)') (meanhaz2(i),i=1,nInten)
+c        pause 'menhaz2'
 
-c             Remove the two cascadia sources (157 and 158)
-              haz_SSC(kFlt,iNode,iBR,iInten) = haz_SSC(kFlt,iNode,iBR,iInten)
-     1            - meanhaz1(157, iInten) - meanhaz1(158, iInten)
+c       Loop over segmentation branches
+        do iBR=1,nBR_SSC(kFlt,12)
 
-c             Add back in the hazard from a single segmentation of Cascadia with full weight
-              if ( iBR .eq. 1 )  then
-                haz_SSC(kFlt,iNode,iBR,iInten) =  haz_SSC(kFlt,iNode,iBR,iInten)
-     1             + meanhaz1(157, iInten) / 0.8
-              elseif ( iBR .eq. 2 ) then
-                haz_SSC(kFlt,iNode,iBR,iInten) =  haz_SSC(kFlt,iNode,iBR,iInten)
-     1             + meanhaz1(158, iInten) / 0.2
-              endif
+c         Reset the weights for this branch (one to unity)
+          do i=1,nSegModel(kFlt)
+            seg_Wt1(kFlt,i) = 0.
+          enddo
+          seg_Wt1(kFlt,iBR) = 1.
+
+c         Find the total weight for each segment in this set
+          do jFlt=iFlt1,iFlt2
+            sum = 0.
+            do i=1,nSegModel(kFlt)
+              sum = sum + seg_wt1(kFlt,i) * segFlag(jFlt,i)
             enddo
-          endif
-         enddo
+            totalSegWt(jFlt) = sum
+c            write (*,'( i5,f10.4)') jFlt, totalSegWt(jFlt)
+          enddo
 
+c         Initialize haz_SSC to total w/o this group of faults
+          do iInten=1,nInten
+            haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz2(iInten) 
+          enddo
+
+c         Add the hazard back to the total for this group of faults
+          do jFlt=iFlt1,iFlt2
+c           Compute the hazard for this set of weights
+            iPrint = 0
+            call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
+     1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
+     2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
+     3         wt_rateMethod1, 
+     4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
+     5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, jflt, iPrint )
+
+c           Add the hazard from these fault (for this branch) to total hazard array
+            do iInten=1,nInten
+              haz_SSC(kFlt,iNode,iBR,iInten) = haz_SSC(kFlt,iNode,iBR,iInten) + haz1(iInten)
+            enddo
+          enddo
+c          write (*,'( 5i5)') kFlt,iNode,iBR, iFlt1, iFlt2
+c         write (*,'( 3i3, 12e12.4)') kFlt,iNode,iBR,(haz_SSC(kFlt,iNode,iBR,i),i=1,nInten)
+         
+        enddo
+c         pause 'haz_SSC'
  
  940    continue
+c       End loop over Nodes 
+
  950   continue         
+c      End loop over faults
+
 
 c       Write out sensitivity hazard curves for SSC
         read (31,'( a80)') file1
@@ -556,29 +372,14 @@ c        write (42,'( 20i5)') iFlt, nNode_SSC, (nBR_SSC1(iFlt,iNode),iNode=1,nNo
               if ( iBR .eq. 4 .and. nMoRate(iFlt) .eq. 0 ) goto 990
             endif
             if ( nBR_SSC1(iFlt,iNode) .eq. 1 ) goto 990
-            write (42,'( 6x, 3i5,25e12.4)') iFlt, iNode, iBR, (haz_SSC(iFlt,iNode,iBR,iInten),iInten=1,nInten)
+            write (42,'( 6x, 3i5,25e12.4)') iFlt, iNode, iBR, 
+     1         (haz_SSC(iFlt,iNode,iBR,iInten),iInten=1,nInten)
  990        continue
           enddo
          enddo
         enddo
         close (42)
 c        pause ' test sensitivity'
-
-c       Separately compute hazard for the segmodels
-c        iNode = 12
-c        do iBR=1,nBR_SSC(1,12)
-c          do iInten=1,nInten
-c            haz_SSC(1,iNode,iBR,iInten) = 0.
-c          enddo
-c          do iFlt=1,nFlt
-c            do iInten=1,nInten
-c              haz_SSC(1,iNode,iBR,iInten) = haz_SSC(1,iNode,iBR,iInten) 
-c     1             + meanhaz1(iFlt, iInten)*segFlag(iFlt, iBR) / totalSegWt_all(iFlt)
-c            enddo
-c          enddo
-c          write (*,'( i5,20e12.4)') iBR, (haz_SSC(1,iNode,iBR,iInten),iInten=1,nInten)
-c          write (67,'( i5,20e12.4)') iBR, (haz_SSC(1,iNode,iBR,iInten),iInten=1,nInten)
-c       enddo
 
 c      Interpolate the desired hazard level for tornado plot
 c      First find the GM for the mean hazard, interpolated to desired haz level
@@ -593,12 +394,6 @@ c      First find the GM for the mean hazard, interpolated to desired haz level
         do iFlt=1,nFlt
          do iNode=1,nNode_SSC
 
-c         Initialize ratios to unity for 9 values 
-          do k=1,9
-             GM_ratio(k) = 1.
-          enddo
-c          if ( iNode .eq. 12 .and. iFlt .gt. 1 ) goto 996
-
           k = 0
           do iBR=1,nBR_SSC(iFlt,iNode)
             if ( iNode .eq. 6 ) then
@@ -612,7 +407,6 @@ c          if ( iNode .eq. 12 .and. iFlt .gt. 1 ) goto 996
  
 c           Interpolate
             k = k + 1
-            GM_ratio(k) = -999.
             do iInten=2,nInten
               if ( haz_SSC(iFlt,iNode,iBR,iInten-1) .ge. hazLevel
      1        .and. haz_SSC(iFlt,iNode,iBR,iInten)  .le. hazLevel ) then
@@ -620,19 +414,7 @@ c           Interpolate
      1                  alog( haz_SSC(iFlt,iNode,iBR,iInten)/ haz_SSC(iFlt,iNode,iBR,iInten-1))
      2                  * alog( testInten(iInten)/testInten(iInten-1) ) + alog(testInten(iInten-1)) )              
 
-c                save GM from thickness, to use to normalize the maxmag
-                 if (iNode .eq. 2 ) then
-                   GM2(iBR) = GM1
-                   write (*,'( i5,f10.4)') iBr, GM1
-                 endif
-
-c                 if ( iNode .ne. 5 ) then
                    GM_ratio(k) = GM1 / GM0
-c                   write (*,'( 2e12.4)') GM1, GM0
-c                 else
-c                   jBR = (iBR-1)/3 + 1
-c                   GM_ratio(k) = GM1 / GM2(jBR)
-c                 endif
                  goto 995 
               endif
             enddo
@@ -649,7 +431,7 @@ c         Check if the range is large enought to be relevant
               if ( GM_ratio(iBR) .lt. ratio1 .or. GM_ratio(iBR) .gt. ratio2 ) iFlag = 1         
             endif
           enddo
-          write (*,'( 3i5, 10e12.3)')  iFlt, iNode, iFlag, (GM_ratio(iBR),iBR=1,k)
+c          write (*,'( 3i5, 10e12.3)')  iFlt, iNode, iFlag, (GM_ratio(iBR),iBR=1,k)
 
 c         Find max factor for this branch
           fact1 = 0.
@@ -662,9 +444,10 @@ c         Find max factor for this branch
 c            write (43,'( 3i5,f10.3, 25f10.4)') iSite, iFlt, iNode,  fact1, 
 c     1                      (GM_ratio(iBR), iBR=1,nBR_SSC(iFlt,iNode) )
             xx = 999.
-            write (43,'( 3i5,f10.3, 9f10.4,$)') iSite, iFlt, iNode,  fact1, 
-     1                      (GM_ratio(iBR), iBR=1,nBR_SSC(iFlt,iNode) ),
-     2                       (xx,iBR=nBR_SSC(iFlt,iNode)+1,9)
+            write (43,'( 3i5,f10.3,$)') iSite, iFlt, iNode,  fact1
+            do iBR=1,nBR_SSC(iFlt,iNode) 
+              write (43,'( f10.4,$)') GM_ratio(iBR)
+            enddo
             write (43,'( 2x,a80)') fname(iFlt)
           endif
          enddo

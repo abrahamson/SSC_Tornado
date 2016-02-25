@@ -102,7 +102,7 @@ c              Set the weight for this set of parameters (epistemic)
 
        if (iPRint .eq. 1 ) then
        
-                   write (*,'( 5i5,20f10.4)') iFLt, iAtten, iWidth, iParam, iFtype, 
+                   write (*,'( 4i5,20f10.4)') iFLt, iWidth, iParam, iFtype, 
      1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
      2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
      3              ,  totalSegWt(iFlt), wt
