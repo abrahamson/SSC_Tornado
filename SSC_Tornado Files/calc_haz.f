@@ -80,11 +80,6 @@ c          set shift to get the to weight for the selected method
              n_bvalue(iFlt) = 1
              bvalue_wt1(iFlt,1) = 1.
            endif
-      if ( iPrint .eq. 1 ) then
-        write (*,'( 10i5)') kFlt, n_bvalue(iFlt), nRefMag(iFlt,iThick)
-        pause 'test 2'
-      endif
-
 
            do 830 i_bValue=1,n_bvalue(iFlt)
             do 820 iRefMag=1,nRefMag(iFlt,iThick)
@@ -136,7 +131,6 @@ c 805          continue
 c       write (*,'( i5, f10.4,20e12.4)') iflt, sumwt, (haz1(iInten), iInten=1,nInten)
 c       pause 'haz'
  900  continue
-c      pause
 
       return
       end

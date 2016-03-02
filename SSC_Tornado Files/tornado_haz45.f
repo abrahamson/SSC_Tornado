@@ -173,13 +173,12 @@ c      Compute the mean hazard for each fault separately
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
         
-        write (*,'( i5,10e12.4)') kflt, (haz1(i),i=1,nInten)
 c        Save the mean hazard for this flt to new array (meanhaz1)
          do i=1,nInten
            meanhaz1(kFlt,i)= haz1(i)
          enddo
        enddo
-        pause
+       
 
 c      Compute the total mean hazard for all faults (meanhaz)
        do i=1,nInten
@@ -227,6 +226,9 @@ c        Check if there is no branch for this node (activity method not used)
 
 c        Compute the hazard for this set of weights
          iPrint = 0
+c         if ( kFlt .ge. 21 .and. kFlt .le. 23 .and. iNode .eq. 5 ) then
+c           iPrint = 1
+c         endif
          call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
      2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
@@ -234,19 +236,15 @@ c        Compute the hazard for this set of weights
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
 
+
 c        Add the hazard from this fault (for this branch) to total hazard array
          do iInten=1,nInten
             haz_SSC(kFlt,iNode,iBR,iInten) = meanhaz2(iInten) + haz1(iInten)
          enddo
-         if ( iNode .eq. 7 ) then
-           if ( kFlt .ge. 31 .and. kFlt .le. 33 ) write (*,'( 3i7,10f10.3)') kFLt, iNode, iBR, 
-     1    (haz_SSC(kFlt,iNode,iBR,i)/meanhaz(i),i=1,nInten)
-         endif
 
  925    continue
          
-C       Reset the weights for this fault back to the starting weights
-        
+C       Reset the weights for this fault back to the starting weights        
          call Set_starting_wts ( n_dip, dipWt, dip_wt1, 
      1     nThick, faultThickWt, faultThick_Wt1, nRefMag, refMagWt,refMag_Wt1,
      2     n_bValue, bvalueWt, bvalue_Wt1, nMagRecur, magRecurWt, magRecur_Wt1,
@@ -255,6 +253,7 @@ C       Reset the weights for this fault back to the starting weights
      5     nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
      6     nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
      7     segFlag, totalSegWt, totalSegWt_all, kFlt )
+
 
  930    continue
 c       End loop on iBR 
@@ -489,6 +488,8 @@ c       interpolate the meanhaz and scaled mean haz
           enddo
  997      continue
         enddo
+
+c       Add node 13 for non-poisson factor (entered by hand)
         iFlt=0
         iNode = 13
         
@@ -500,8 +501,8 @@ c       Find max factor for this branch
         enddo
           
         write (43,'( 3i5,f10.3, 25f10.4)') iSite, iFlt, iNode, fact1, 
-     1      (GM_ratio(iBR), iBR=1,3),
-     2       (xx,iBR=nBR+1,9)
+     1      (GM_ratio(iBR), iBR=1,3)
+c     2       ,(xx,iBR=nBR+1,9)
 
         call flush (43)
 

@@ -32,10 +32,8 @@
       real seg_wt1(MAX_FLT,MAX_SEG)
       real wt_rateMethod1(MAX_FLT,4)
       
-      integer j, jFlt, iThick, k, iFM, i
+      integer j, jFlt, iThick, k, iFM, i, ib
       real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT)
-
-
      
 c        Set Dip weights
          do j=1,n_Dip(jFlt)
@@ -52,7 +50,12 @@ c        Set thick and refMag weights
 
 c        Set b-values weights
          do j=1,n_bValue(jFlt)
-           bvalue_Wt1(jFlt,j) = bvalueWt(jFlt,j)
+           if ( n_bValue(jFlt) .eq. 1 ) then
+             bvalue_Wt1(jFlt,j) = 1.
+             bvalueWt(jFlt,j) = 1.
+           else
+             bvalue_Wt1(jFlt,j) = bvalueWt(jFlt,j)
+           endif
          enddo
 
 c        Set mag recur weights
@@ -81,22 +84,42 @@ c        Set Activity Rate Method weights
 
 c        Set SR weights 
          do i=1,nSR(jFLt)
-           wt_SR1(jFLT,i) = wt_SR(jFlt,i)
+           if (nSR(jFLt) .eq. 1 ) then
+             wt_SR1(jFLT,i) = 1.
+             wt_SR(jFlt,i) = 1.
+           else
+             wt_SR1(jFLT,i) = wt_SR(jFlt,i)
+           endif
          enddo
 
 c        Set Activity Rate weights
          do i=1,nActRate(jFLt)
-           actRate_wt1(jFLT,i) = actRateWt(jFlt,i)
+           if ( nActRate(jFlt) .eq. 1 ) then
+             actRate_wt1(jFLT,i) = 1.
+             actRateWt(jFlt,i) = 1.
+           else
+             actRate_wt1(jFLT,i) = actRateWt(jFlt,i)
+           endif
          enddo
 
 c        Set Rec Int weights
          do i=1,nRecInt(jFLt)
-           wt_RecInt1(jFLT,i) = wt_recInt(jFlt,i)
+           if ( nRecInt(jFlt) .eq. 1 ) then
+             wt_RecInt1(jFLT,i) = 1.
+             wt_recInt(jFlt,i) = 1.
+           else
+             wt_RecInt1(jFLT,i) = wt_recInt(jFlt,i)
+           endif
          enddo
 
 c        Set moment rate weights
          do i=1,nMoRate(jFLt)
-           MoRate_wt1(jFLT,i) = wt_MoRate(jFLT,i) 
+           if ( nMoRate(jFLt) .eq. 1 ) then
+             MoRate_wt1(jFLT,i) = 1.
+             wt_MoRate(jFLT,i) = 1.
+           else
+             MoRate_wt1(jFLT,i) = wt_MoRate(jFLT,i)
+           endif 
          enddo
 
 c        Find the total weight for this fault
@@ -150,6 +173,7 @@ c -----------------------------------------------------------
       integer iDip, iMagRec, iThick1, iSkip, iSR, iAct, iRecInt, iMo, ib
       integer iNode, iBR, jBR, nBR_SSC(MAX_FLT,MAX_NODE)
       real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT)
+      integer j1, iThick2
 
 c     Set skip flag - if return 0, then there is no branch 
 c     This is used for the activty rate methods that are not used
@@ -208,12 +232,15 @@ c     combine all of the maxmag (by thickness) into one big branch
             k = k + 1
             if ( k .eq. iBR) then
               refMag_Wt1(kFlt,iThick1,j) = 1.  
+              j1 = j
+              iThick2 = iThick1
               jBR = (iBR-1)/3 + 1
               faultThick_Wt1(kFlt,jBR) = 1.
             endif
           enddo
-        enddo 
+        enddo
       endif
+      
 
 c     Reset the rate type weight
       if ( iNode .eq. 6 ) then
@@ -267,6 +294,6 @@ c     Reset the b-value (for fault) weight
         enddo
         bvalue_wt1(kFlt,iBR) = 1.
       endif
-
+      
       return
       end

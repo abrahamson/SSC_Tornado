@@ -5,7 +5,7 @@ c     Set array dimensions
      2        MAX_WIDTH, MAX_SAMPLE, MAX_RISK, MAXRUP, MAX_FIXED_MAG, MAX_MAGDIM, MAX_FTYPE, 
      3        MAX_ATTEN, MAX_ATTENTYPE, MAX_BR, MAX_NODE
 
-      PARAMETER ( MAX_SITE  = 1, MAX_FLT = 180, MAX_SEG  = 40,
+      PARAMETER ( MAX_SITE  = 1, MAX_FLT = 701, MAX_SEG  = 100,
      1            MAX_INTEN = 20, MAX_PROB = 3, MAX_DIP=5,  
      2            MAXPARAM = 200, MAX_MAG=15, MAX_DIST=15, 
      3            MAX_EPS=15, MAX_N1=150, MAX_Files=3, MAX_N2=6,MAX_Xcost=10,
