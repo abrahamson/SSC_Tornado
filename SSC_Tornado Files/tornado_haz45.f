@@ -92,8 +92,6 @@ c     Read run file
      3           nFtype, ftype_al, wt_rateMethod, al_Segwt,
      3           nRate, rateType, nBR_SSC, nSegModel, segwt, segFlag, indexRate, fname )
       write (*,'( i5)') nFlt
-      write (*,'( i5)') nSegModel(115)
-      pause 'nsegmodel 115'
 
 c     sources are indexed in two ways
 c     When the out5 file is read, the sources are just numbered 1 to NFLT
@@ -114,8 +112,6 @@ c        nSegModel1(iFlt) = nSegModel(iFlt0)
         nSegModel1(iFlt) = nSegModel(iFlt)
         fltsys_flag(iFlt) = iFlt0
       enddo   
-      write (*,'( i5)') nSegModel1(115)
-      pause 'nsegmodel1(115)'
 
       
 
@@ -285,10 +281,6 @@ c       If 1 branch, then set to mean hazard
           nBR_SSC(kFlt,12) = nSegModel1(kFlt)
           nBR_SSC1(kFlt,12) = nSegModel1(kFlt)
         endif
-        if ( kFlt .eq. 115 ) then
-           write (*,'( 2i5)') kFlt, nBR_SSC(kFlt,12) 
-           pause 'nBR node 12'
-        endif
 
 c       Remove the hazard from faults in this fault group from the total haz
         do i=1,nInten
@@ -404,10 +396,6 @@ c      First find the GM for the mean hazard, interpolated to desired haz level
 
         do iFlt=1,nFlt
          do iNode=1,nNode_SSC
-          if ( iNode .eq. 12 .and. iFlt .eq. 115) then
-           write (*,'( 3i5)') iFlt, iNode, nBR_SSC(iFlt,iNode)
-           pause
-          endif
 
           k = 0
           do iBR=1,nBR_SSC(iFlt,iNode)
