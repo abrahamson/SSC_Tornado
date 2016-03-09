@@ -294,6 +294,6 @@ c     Reset the b-value (for fault) weight
         enddo
         bvalue_wt1(kFlt,iBR) = 1.
       endif
-      
+
       return
       end

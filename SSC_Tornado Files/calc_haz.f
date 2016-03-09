@@ -10,7 +10,7 @@
       
 c     Passed Variables
       real haz(MAX_INTEN, MAX_FLT, MAX_WIDTH, MAXPARAM,MAX_FTYPE) 
-      real haz1(MAX_INTEN)
+      real haz1(MAX_INTEN), haz2(MAX_FLT,MAX_INTEN)
       real al_segwt(MAX_FLT), totalSegWt(MAX_FLT)
       integer nInten, nFlt, iPrint
       integer attentype(MAX_FLT)
@@ -31,19 +31,26 @@ c     Passed Variables
       integer iwidth, irate, iMagpdf, i_bvalue, iRefmag, jtype
 
 c     initialize hazard
+      do iFlt = 1, nFlt
+        do i=1,nInten
+          haz2(iFlt,i) = 0.
+        enddo
+      enddo
       do i=1,nInten
-        haz1(i) = 0.
+          haz1(i) = 0.
       enddo
 
       
-      if ( iPrint .eq. 1 ) then
-        write (*,'( 10i5)') kFlt, nThick(iFlt), n_dip(iFlt),nMagRecur(iFlt), 
-     1   nRate(iFlt), nFtype1(iFlt)
-        pause 'test 1'
-      endif
+c      if ( iPrint .eq. 1 ) then
+c        write (*,'( 10i5)') kFlt, nThick(iFlt), n_dip(iFlt),nMagRecur(iFlt), 
+c     1   nRate(iFlt), nFtype1(iFlt)
+c        pause 'test 1'
+c      endif
 
+c      write (*,'( i5)') nFlt
+c      pause 'nflt'
+      
       do 900 iFlt = 1, nFlt
-
       sumwt = 0.
 
 c      Loop over fault dips
@@ -64,7 +71,6 @@ c          set shift to get the to weight for the selected method
            i1 = iRate - indexRate(iFlt,rateType(iFlt,iRate))
            if ( rateType(iFlt,iRate) .eq. 1 ) then
              wt1 = wt_sr1(iFlt,i1) * wt_rateMethod1(iFlt,1)
-             if (iprint .eq. 1 ) write (*,'( 3f10.4)') wt1 , wt_sr1(iFlt,i1) , wt_rateMethod1(iFlt,1)
             elseif ( rateType(iFlt,iRate) .eq. 2 ) then
              wt1 = actRate_Wt1(iFlt,i1) * wt_rateMethod1(iFlt,2)
            elseif ( rateType(iFlt,iRate) .eq. 3 ) then
@@ -92,28 +98,27 @@ c              Set the weight for this set of parameters (epistemic)
      3          * totalSegWt(iFlt)
                sumwt = sumwt + wt
 
-       if (iPRint .eq. 1 ) then
-       
-                   write (*,'( 4i5,20f10.4)') iFLt, iWidth, iParam, iFtype, 
-     1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
-     2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
-     3              ,  totalSegWt(iFlt), wt
-                   write (*,'( f10.5, 2x,''wt for branch'')') wt
-                   pause
-       endif
+c       if (iPRint .eq. 1 .and. iflt .eq. 1) then       
+c                   write (*,'( 4i5,20f10.4)') iFLt, iWidth, iParam, iFtype, 
+c     1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
+c     2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
+c     3              ,  totalSegWt(iFlt), wt
+c                   write (*,'( f10.5, 2x,''wt for branch'')') wt
+c                   pause
+c       endif
         
 c              Add weight for aleatory rupture segmentation 
                wt = wt * al_segwt(iFlt) 
 
-               if ( iPRint .eq. 1 ) write (65,'( 5i5, f10.4,10e12.4)') iAtten, iFlt, iWidth, iParam, iFtype, wt, 
-     1               (haz(iInten, iFlt, iWidth, iParam, iFtype),iInten=1,nInten)
+c               if ( iPRint .eq. 1 ) write (65,'( 5i5, f10.4,10e12.4)') iAtten, iFlt, iWidth, iParam, iFtype, wt, 
+c     1               (haz(iInten, iFlt, iWidth, iParam, iFtype),iInten=1,nInten)
 
 c           write (*, '( i5)') nInten
                do iInten=1,nInten
 c              Add to hazard for this set of weights
-                 haz1(iInten) =  haz1(iInten) + haz(iInten, iFlt, iWidth, iParam, iFtype) * wt
-                 if ( iPrint .eq. 1 ) write (*,'( 3i5,3e12.3)') iFlt, iWidth, 
-     1                iParam, haz(iInten, iFlt, iWidth, iParam, iFtype), wt, haz1(iInten)
+                 haz2(iFlt,iInten) =  haz2(iFlt,iInten) + haz(iInten, iFlt, iWidth, iParam, iFtype) * wt
+c                 if ( iPrint .eq. 1 ) write (56,'( 3i5,3e12.3)') iFlt, iWidth, 
+c     1                iParam, haz(iInten, iFlt, iWidth, iParam, iFtype), wt, haz1(iInten)
                enddo
 c               pause
 c 805          continue
@@ -127,6 +132,11 @@ c 805          continue
  860   continue
 c       write (*,'( i5, f10.4,20e12.4)') iflt, sumwt, (haz1(iInten), iInten=1,nInten)
 c       pause 'haz'
+
+        if ( iPRint .eq. 1 ) write (70,'(i5,20e12.4)') iFlt, (haz2(iFlt,i),i=1,nInten)
+        do i=1,nInten
+          haz1(i) = haz1(i) + haz2(iFlt,i)
+        enddo
  900  continue
 
       return

@@ -28,7 +28,7 @@ c     Last modified:  8/15
 
       real*8 haz_SSC(MAX_FLT, MAX_NODE, MAX_BR, MAX_INTEN) 
       real*8 haz_SSC1(MAX_NODE, MAX_BR, MAX_INTEN) 
-      real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT)
+      real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT), totalSegWt1(MAX_FLT)
       real*8 sum1
 
       integer n_Dip(MAX_FLT),n_bvalue(MAX_FLT), nActRate(MAX_FLT), nSR(MAX_FLT), 
@@ -90,7 +90,7 @@ c     Last modified:  8/15
 
 c     Read Input File
       call RdInput ( nInten,  testInten, iPer, nProb, period )
-c      pause 'out of rDinput'
+      pause 'out of rDinput'
 
 c     Read run file
       call Rd_Fault_Data  (nFlt, nFlt0, f_start, f_num, AttenType, 
@@ -156,6 +156,7 @@ c     Loop Over Number of  sites (iSite is a summary used in haz runs)
 c      Read the out1 file       
        write (*,'( 2x,''reading logic tree file'')')
        call read_out5 ( nFlt, haz, nFtype1, iPer, nProb )
+       pause 'out of read5'
 
 c      THis is set up using brute force.  It is not efficient, but will be easier to modify to 
 c      account for correlations later.
@@ -173,26 +174,14 @@ c      First, reset the SSC Weights to starting value for all faults
        enddo
 
 c      Compute the mean hazard for each fault separately
-       do kFlt=1,nFlt
          iPrint = 0
-         call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
+c             if ( kFlt .eq. 2 .and. iNode .eq. 5 ) iPrint = 1         
+         call calcHaz ( haz, meanhaz, al_segwt, totalSegWt, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, 
      2         magRecur_Wt1, faultThick_Wt1, refMag_Wt1, ftype_wt1,
      3         wt_rateMethod1,  
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, iPrint )
-        
-c        Save the mean hazard for this flt to new array (meanhaz1)
-c         do i=1,nInten
-c           meanhaz1(kFlt,i)= haz1(i)
-c         enddo
-       enddo
-       
-
-c      Compute the total mean hazard for all faults (meanhaz)
-         do i=1,nInten
-           meanhaz(i)= haz1(i)
-         enddo
 
 c      SSC, reset the weights to unity for a given branch, fault and one node at a time
        do 950 kFlt = 1, nFlt
@@ -228,6 +217,7 @@ c                       10=Moment, 11=b_value flt, 12=segModel
      5       nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
      6       nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
      7       segFlag, totalSegWt, totalSegWt_all, kFlt, iNode, iBR, nBR_SSC, iSkip )
+
          else
            write (*,'( 3i5)') kflt, iCorrFlag, corrNFlt(iCorrFlag)
 c          Reset weights for all correlated branches
@@ -241,9 +231,8 @@ c          Reset weights for all correlated branches
      5         nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
      6         nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
      7         segFlag, totalSegWt, totalSegWt_all, jFlt1, iNode, iBR, nBR_SSC, iSkip )
-              write (*,'( i5,3f10.3,2x,'' jflt1'')') jFlt1, (wt_SR1(jFlt1,i),i=1,3)
+              write (*,'( i5,3f10.3,2x,'' jflt1'')') jFlt1,  totalSegWt(jFlt1)
            enddo
-           pause
          endif
 
 c        Check if there is no branch for this node (activity method not used)
@@ -251,9 +240,9 @@ c        Check if there is no branch for this node (activity method not used)
 
 c        Compute the hazard for this set of weights
          iPrint = 0
-c         if ( kFlt .ge. 21 .and. kFlt .le. 23 .and. iNode .eq. 5 ) then
-c           iPrint = 1
-c         endif
+             if ( kFlt .eq. 2 .and. iNode .eq. 5 ) iPrint = 1
+         
+         write (*,'( 4i5)') kFlt, iNode, IBR, nFlt
          call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
      2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
@@ -261,8 +250,13 @@ c         endif
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, iPrint )
 
+c             if ( kFlt .eq. 2 .and. iNode .eq. 5 ) then
+c          write (*,'( 3i5,15e12.4)') kflt, iNode, iBr, (haz1(iInten),iInten=1,nInten)
+c          write (*,'( 3i5,15e12.4)') kflt, iNode, iBr, (meanhaz(iInten),iInten=1,nInten)
+c                pause
+c             endif
 
-c        Add the hazard from this fault (for this branch) to total hazard array
+c        Keep the hazard 
          do iInten=1,nInten
             haz_SSC(kFlt,iNode,iBR,iInten) = haz1(iInten)
          enddo
@@ -332,7 +326,7 @@ c         Find the total weight for each segment in this set
             do i=1,nSegModel(kFlt)
               sum = sum + seg_wt1(kFlt,i) * segFlag(jFlt,i)
             enddo
-            totalSegWt(jFlt) = sum
+            totalSegWt1(jFlt) = sum
 c            write (*,'( i5,f10.4)') jFlt, totalSegWt(jFlt)
           enddo
 
@@ -340,7 +334,7 @@ c         Add the hazard back to the total for this group of faults
           do jFlt=iFlt1,iFlt2
 c           Compute the hazard for this set of weights
             iPrint = 0
-            call calcHaz ( haz, haz1, al_segwt, totalSegWt, 
+            call calcHaz ( haz, haz1, al_segwt, totalSegWt1, 
      1         dip_Wt1, bValue_Wt1, actRate_Wt1, wt_SR1, wt_RecInt1, MoRate_wt1, magRecur_Wt1,    
      2         faultThick_Wt1, refMag_Wt1, ftype_wt1,
      3         wt_rateMethod1, 

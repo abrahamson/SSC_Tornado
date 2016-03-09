@@ -26,6 +26,7 @@ c     Open output 1 file
       do iFlt=1,nFlt     
 
         do jProb=1,nProb
+c        write (*,'( 2i5)') iFlt, jProb
 
           read (nwr,*) jFlt, iProb, nAtten, nWidth(iFlt), nFtype(iFlt), 
      1         (nParamVar(iFlt,i),i=1,nWidth(iFlt)), nInten
