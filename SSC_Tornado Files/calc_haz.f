@@ -3,7 +3,7 @@
      2     faultThick_Wt1, refMag_Wt1, ftype_wt1,
      3     wt_rateMethod1, 
      4     nInten, nFlt, n_Dip, n_bvalue, nRefMag,
-     5     nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, kflt, iPrint )
+     5     nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, iPrint )
 
       implicit none
       include 'tornado.h'
@@ -35,8 +35,6 @@ c     initialize hazard
         haz1(i) = 0.
       enddo
 
-      iFlt = kFlt
-
       
       if ( iPrint .eq. 1 ) then
         write (*,'( 10i5)') kFlt, nThick(iFlt), n_dip(iFlt),nMagRecur(iFlt), 
@@ -44,8 +42,7 @@ c     initialize hazard
         pause 'test 1'
       endif
 
-c     Compute hazard for the kflt only
-c      do 900 iFlt = 1, nFlt
+      do 900 iFlt = 1, nFlt
 
       sumwt = 0.
 

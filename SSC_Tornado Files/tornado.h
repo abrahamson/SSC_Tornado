@@ -11,6 +11,6 @@ c     Set array dimensions
      3            MAX_EPS=15, MAX_N1=150, MAX_Files=3, MAX_N2=6,MAX_Xcost=10,
      4            MAX_WIDTH=12, MAX_SAMPLE=10000, MAX_RISK=4000)
       PARAMETER (MAXRUP=4, MAX_FIXED_MAG=3, MAX_MAGDIM=3, MAX_FTYPE=3, MAX_ATTEN=54, 
-     1            MAX_ATTENTYPE=2, MAX_BR=100, MAX_NODE=20)
+     1            MAX_ATTENTYPE=2, MAX_BR=40, MAX_NODE=20)
 
 
