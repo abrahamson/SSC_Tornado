@@ -12,7 +12,7 @@
       real segwt1 (MAX_FLT,MAX_SEG)
 
       integer nFltTotal, nFlt0, f_start(MAX_FLT), f_num(MAX_FLT)
-      integer faultflag(MAX_FLT,MAX_SEG,MAX_FLT), nBR_SSC(MAX_FLT,MAX_BR)
+      integer faultflag(MAX_FLT,MAX_SEG,MAX_FLT), nBR_SSC(MAX_FLT,MAX_NODE)
 
       integer nSegModel(MAX_FLT), n_Dip(MAX_FLT),n_bvalue(MAX_FLT), nActRate(MAX_FLT), 
      1        nSR(MAX_FLT), nRecInt(MAX_FLT), nMoRate(MAX_FLT)
@@ -78,7 +78,7 @@ C.......Loop over number of individual fault segments....
 
 c         Set up segmentation cases and weights by individual faults
           nSegModel1(iFlt) = nSegModel(iFlt0)
-          nBR_SSC(iFLt,12) = nSegModel1(iFlt) 
+          nBR_SSC(iFLt,12) = nSegModel(iFlt0)
           do iSeg=1,nSegModel1(iFlt)
             segwt1(iFlt,iSeg) = segWt(iFlt0,iSeg)
             segFlag(iFlt,iSeg) = faultFlag(iFlt0,iSeg,iflt2)

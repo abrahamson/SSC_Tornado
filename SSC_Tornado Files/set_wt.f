@@ -5,7 +5,7 @@
      4     nSegModel, segwt, seg_wt1, wt_RateMethod, wt_RateMethod1,
      5     nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
      6     nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
-     8     segFlag, totalSegWt, totalSegWt_all, jFlt )
+     8     segFlag, totalSegWt, jFlt )
       implicit none
 
       include 'tornado.h'
@@ -17,7 +17,7 @@
       real ftype_al(MAX_FLt,MAXPARAM,5)
       integer nSegModel(MAX_FLT), segFlag(MAX_FLT, MAX_SEG)
 
-      real segwt(MAX_FLT,MAX_FLT), dipWt(MAX_FLT,MAXPARAM), bValueWt(MAX_FLT,MAXPARAM),
+      real segwt(MAX_FLT,MAX_SEG), dipWt(MAX_FLT,MAXPARAM), bValueWt(MAX_FLT,MAXPARAM),
      1     actRateWt(MAX_FLT,MAXPARAM), 
      1     wt_SR(MAX_FLT,MAXPARAM), wt_RecInt(MAX_FLT,MAXPARAM), wt_MoRate(MAX_FLT,MAXPARAM),
      1      magRecurWt(MAX_FLT,MAXPARAM),    
@@ -33,7 +33,7 @@
       real wt_rateMethod1(MAX_FLT,4)
       
       integer j, jFlt, iThick, k, iFM, i, ib
-      real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT)
+      real sum, totalSegWt(MAX_FLT)
      
 c        Set Dip weights
          do j=1,n_Dip(jFlt)
@@ -128,7 +128,7 @@ c        Find the total weight for this fault
            sum = sum + seg_wt1(jFlt,i) * segFlag(jFlt,i)
          enddo
          totalSegWt(jFlt) = sum
-         totalSegWt_all(jFlt) = sum
+c         write (*,'( i5,f10.4)') jflt, totalSegWt(jFlt) 
 
       return
       end
@@ -142,7 +142,7 @@ c -----------------------------------------------------------
      4     nSegModel, segwt, seg_wt1, wt_RateMethod, wt_RateMethod1,
      5     nSR, wt_SR, wt_SR1, nActRate, actRateWt, actRate_Wt1,
      6     nRecInt, wt_recInt, wt_recInt1, nMoRate, wt_MoRate, MoRate_wt1,
-     7     segFlag, totalSegWt, totalSegWt_all, kFlt, iNode, iBR, nBR_SSC, iSkip )
+     7     segFlag, totalSegWt, kFlt, iNode, iBR, nBR_SSC, iSkip )
       implicit none
 
       include 'tornado.h'
@@ -172,7 +172,7 @@ c -----------------------------------------------------------
       integer j, kFlt, iThick, k, iFM, i
       integer iDip, iMagRec, iThick1, iSkip, iSR, iAct, iRecInt, iMo, ib
       integer iNode, iBR, jBR, nBR_SSC(MAX_FLT,MAX_NODE)
-      real sum, totalSegWt(MAX_FLT), totalSegWt_all(MAX_FLT)
+      real sum, totalSegWt(MAX_FLT)
       integer j1, iThick2
 
 c     Set skip flag - if return 0, then there is no branch 

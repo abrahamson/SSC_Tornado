@@ -98,14 +98,15 @@ c              Set the weight for this set of parameters (epistemic)
      3          * totalSegWt(iFlt)
                sumwt = sumwt + wt
 
-c       if (iPRint .eq. 1 .and. iflt .eq. 1) then       
-c                   write (*,'( 4i5,20f10.4)') iFLt, iWidth, iParam, iFtype, 
-c     1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
-c     2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
-c     3              ,  totalSegWt(iFlt), wt
-c                   write (*,'( f10.5, 2x,''wt for branch'')') wt
-c                   pause
-c       endif
+       if (iPRint .eq. 1 ) then       
+                   write (*,'( 4i5,20f10.4)') iFLt, iWidth, iParam, iFtype, 
+     1              wt1, dip_Wt1(iFlt,iDip) , faultThick_wt1(iFlt,iThick) , bValue_Wt1(iFlt,i_bValue)
+     2              , magRecur_Wt1(iFlt,imagpdf) , refMag_Wt1(iFlt,iThick,iRefMag) , ftype_wt1(iFlt,iFtype)
+     3              ,  totalSegWt(iFlt), wt
+                   write (*,'( f10.5, 20e12.3)') wt, 
+     1           (haz(iInten, iFlt, iWidth, iParam, iFtype), iInten=1,nInten)
+                   pause
+       endif
         
 c              Add weight for aleatory rupture segmentation 
                wt = wt * al_segwt(iFlt) 
@@ -133,7 +134,7 @@ c 805          continue
 c       write (*,'( i5, f10.4,20e12.4)') iflt, sumwt, (haz1(iInten), iInten=1,nInten)
 c       pause 'haz'
 
-        if ( iPRint .eq. 1 ) write (70,'(i5,20e12.4)') iFlt, (haz2(iFlt,i),i=1,nInten)
+        if ( iPRint .eq. 2 ) write (70,'(i5,20e12.4)') iFlt, (haz2(iFlt,i),i=1,nInten)
         do i=1,nInten
           haz1(i) = haz1(i) + haz2(iFlt,i)
         enddo
