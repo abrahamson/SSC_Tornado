@@ -91,7 +91,7 @@ c     Last modified:  8/15
 
 c     Read Input File
       call RdInput ( nInten,  testInten, iPer, nProb, period )
-      pause 'out of rDinput'
+      write (*,'( 2x,''out of RdInput'')')
 
 c     Read run file
       call Rd_Fault_Data  (nFlt, nFlt0, f_start, f_num, AttenType, 
@@ -101,11 +101,6 @@ c     Read run file
      3           faultThickWt, refMagWt, ftmodelwt,
      3           nFtype, ftype_al, wt_rateMethod, al_Segwt,
      3           nRate, rateType, nBR_SSC, nSegModel, segwt, segFlag, indexRate, fname )
-      write (*,'( i5)') nFlt
-      do iflt=1,nflt
-        write (*,'( 2i5)') iflt, nBR_SSC(iflt,12)
-      enddo
-      pause
 
 c     sources are indexed in two ways
 c     When the out5 file is read, the sources are just numbered 1 to NFLT
@@ -161,7 +156,7 @@ c     Loop Over Number of  sites (iSite is a summary used in haz runs)
 c      Read the out1 file       
        write (*,'( 2x,''reading logic tree file'')')
        call read_out5 ( nFlt, haz, nFtype1, iPer, nProb )
-       pause 'out of read5'
+       write (*,'( 2x, ''out of read5'') ')
 
 c      THis is set up using brute force.  It is not efficient, but will be easier to modify to 
 c      account for correlations later.
@@ -188,13 +183,10 @@ c         iPrint = 1
      3         wt_rateMethod1,  
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, iPrint ) 
-       write (*,'( 20e12.3)') (meanhaz(i),i=1,nInten)
-       pause            
              
              
 c      SSC, reset the weights to unity for a given branch, fault and one node at a time
        do 950 kFlt = 1, nFlt
-c         write (*,'( 6i5)') iSite, nSite, kFlt, nFlt
 
         do 940 iNode=1,nNode_SSC 
 c        Set special handling for segmentation (Node=12)
@@ -206,13 +198,11 @@ c        Check if this is a correlated node (only pick the first flt in the list
            do i=1,nCorr1
              if ( iNode .eq. corrNode(i) .and. kFlt .eq. corrFlt(i,1)) then
                iCorrFlag = i
-               write (*,'( 2x,''yes corr'',2i5)') kFlt, iNode
+c               write (*,'( 2x,''yes corr'',2i5)') kFlt, iNode
              endif
            enddo
          endif
-c         write (*,'( 3i5,2x,''corrflag'')') kflt, iNode, iCorrFlag
          
-c         write (*,'( 3i5)') kflt, iNode, nBR_SSC(kFlt,iNode)
          do 930, iBR=1,nBR_SSC(kFlt,iNode)
 
 c         Now, set weights to unity for the Node and Branch of interest for fault kFlt
@@ -230,7 +220,7 @@ c                       10=Moment, 11=b_value flt, 12=segModel
      7       segFlag, totalSegWt1, kFlt, iNode, iBR, nBR_SSC, iSkip )
 
          else
-           write (*,'( 4i5)') kflt, iNode, iCorrFlag, corrNFlt(iCorrFlag)
+c           write (*,'( 4i5)') kflt, iNode, iCorrFlag, corrNFlt(iCorrFlag)
 c          Reset weights for all correlated branches
            do jFlt=1,corrNFlt(iCorrFlag) 
              jFlt1 = corrFlt(iCorrFlag,jFlt)
@@ -261,11 +251,6 @@ c         write (*,'( 4i5)') kFlt, iNode, IBR, nFlt
      4         nInten, nFlt, n_Dip, n_bvalue, nRefMag,
      5         nFtype1, indexrate, nMagRecur, nRate, RateType, nThick, iPrint )
 
-             if ( kFlt .eq. 116 .and. iNode .eq. 5 ) then
-          write (*,'( 3i5,15e12.4)') kflt, iNode, iBr, (haz1(iInten),iInten=1,nInten)
-          write (*,'( 3i5,15e12.4)') kflt, iNode, iBr, (meanhaz(iInten),iInten=1,nInten)
-                pause
-             endif
 
 c        Keep the hazard 
          do iInten=1,nInten
@@ -326,11 +311,7 @@ c       If 1 branch, then set to mean hazard
 c         Find the first and last faults in this set
           iflt1 = f_start(fltsys_flag(kFlt))
           iflt2 = f_num(fltsys_flag(kFlt))+iFlt1-1
-c          write (*,'( 3i5)') kflt, iflt1, iflt2 
-c          pause 'segment range'
 
-        write (*,'( 2i5)') kflt, nBR_SSC(kFlt,12)
-        pause 'nsegmodel'
 c       Loop over segmentation branches
         do iBR=1,nBR_SSC(kFlt,12)
 
@@ -346,13 +327,6 @@ c         Find the total weight for each segment in this set
             totalSegWt1(jFlt) = segFlag(jFlt,iBR)
 c            write (*,'( i5,f10.4)') jFlt, totalSegWt1(jFlt)
           enddo
-
-          if (kflt .eq. 115 ) then
-          do iFlt=1,nFLt
-            write (76,'( i5,f10.4)') iFlt, totalSegWt1(iFlt)
-          enddo
-          pause 'test 20'
-          endif
 
 c         Compute the hazard for this set of weights
           iPrint = 0
