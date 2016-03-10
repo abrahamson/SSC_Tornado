@@ -312,7 +312,7 @@ c       write (*,'( 2i5,2x,''node12_flag'')') kflt, node_12_flag(kflt)
 
 c       Set the number of branches for the segmenation node
 c       If 1 branch, then set to mean hazard
-        if ( node_12_flag(kFlt) .eq. 0 .or. nSegModel1(kFlt) .eq. 1) then
+        if ( node_12_flag(kFlt) .eq. 0 .or. nBR_SSC(kFlt,12) .eq. 1) then
           nBR_SSC(kFlt,12) = 1
           nBR_SSC1(kFlt,12) = 1
           do iInten=1,nInten
@@ -320,8 +320,7 @@ c       If 1 branch, then set to mean hazard
           enddo
           goto 940
         else
-          nBR_SSC(kFlt,12) = nSegModel1(kFlt)
-          nBR_SSC1(kFlt,12) = nSegModel1(kFlt)
+          nBR_SSC1(kFlt,12) = nBR_SSC(kFlt,12)
         endif
 
 c         Find the first and last faults in this set
