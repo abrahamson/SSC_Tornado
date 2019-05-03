@@ -1,14 +1,14 @@
+
 c ----------------------------
-      subroutine GetRandom0 ( iseed, n, wt, iSave )
+      subroutine GetRandom0 ( iseed, n, wt, iSave, n1, iflag, iflt )
 
-      integer iseed,isave,n
-      real wt(1)
-      real x
+      implicit none
 
+      integer iseed, i1, isave, n1, n, i, iflag, iflt
+      real ran1, wt(n1), x
+      
 c     Get random number
       x = ran1( iseed )
-
-c      write (*,*) 'N=', n
 
       do i=1,n
         if ( x .le. wt(i) ) then
@@ -17,20 +17,25 @@ c      write (*,*) 'N=', n
         endif
       enddo
       
-      write (*,*) ' Get Random Number 0'
-      write (*,*) 'Weights = ',wt
-      write (*,*) 'Random Number = ', x
+      write (*,*) ' Get Random Number 1'
       write (*,'( 2x,''Error - bad ran number or weights'')')
+      write (*,*) ' Random Number        = ', x
+      write (*,*) ' Fixed Parameter      = ', i1
+      write (*,*) ' Number of Parameters = ', n
+      do i=1,n
+         write (*,*) wt(i)
+      enddo
+      write (*,'( 2x,''iflt, iflag ='',2i5)') iflt, iflag
       stop 99
       end
-
+      
 c ----------------------------
-      subroutine GetRandom1 ( iseed, n, wt, i1, iSave, n1, name )
+      subroutine GetRandom1 ( iseed, n, wt, i1, iSave, n1, n2, iflag )
 
-      integer iseed,i1,isave,n1,n
-      real wt(n1, n1)
-      real x
-      character*6 name
+      implicit none
+
+      integer iseed, i1, isave, n1, n2, n, i, iflag
+      real ran1, wt(n1, n2), x
       
 c     Get random number
       x = ran1( iseed )
@@ -43,23 +48,24 @@ c     Get random number
       enddo
       
       write (*,*) ' Get Random Number 1'
-      write (*,'( 2x,''Error - bad ran number 1 or weights: '', a6)') name
+      write (*,'( 2x,''Error - bad ran number or weights'')')
       write (*,*) ' Random Number        = ', x
       write (*,*) ' Fixed Parameter      = ', i1
       write (*,*) ' Number of Parameters = ', n
       do i=1,n
          write (*,*) wt(i1,i)
       enddo
+      write (*,'( 2x,''iflag ='',i5)') iflag
       stop 99
       end
       
 c ----------------------------
-      subroutine GetRandom1b ( iseed, n, wt, i1, iSave, n1, n2, name )
+      subroutine GetRandom1b ( iseed, n, wt, i1, iSave, n1, n2 )
 
-      integer iseed,i1,isave,n1,n, n2
-      real wt(n2, n1)
-      real x
-      character*6 name
+      implicit none
+
+      integer iseed, i1, isave, n1, n, n2, i
+      real ran1, wt(n2, n1), x
 
 c     Get random number
       x = ran1( iseed )
@@ -72,20 +78,20 @@ c     Get random number
       enddo
       
       write (*,*) ' Get Random Number 1b'
-      write (*,'( 2x,''Error - bad ran number 1b or weights: '', a6)') name
+      write (*,'( 2x,''Error - bad ran number or weights'')')
       write (*,*) x
       write (*,*) (wt(i1,i),i=1,n)
       stop 99
       end
       
 c ----------------------------
-      subroutine GetRandom2 ( iseed, n, wt, i1, i2, iSave, n1, n2, name )
+      subroutine GetRandom2 ( iseed, n, wt, i1, i2, iSave, n1, n2 )
 
-      include 'tornado.H'
+      implicit none
+      include 'tornado.h'
 
-      real wt(n1, n2, MAXPARAM), x
-      integer n1, n2, n, iseed, i1, i2
-      character*6 name
+      integer n1, n2, n, iseed, i, i1, i2, iSave
+      real ran1, wt(n1, n2, MAXPARAM), x
 
 c     Get random number
       x = ran1( iseed )
@@ -97,7 +103,7 @@ c     Get random number
       enddo
       
       write (*,*) ' Get Random Number 2'
-      write (*,'( 2x,''Error - bad ran number 2 or weights: '', a6)') name
+      write (*,'( 2x,''Error - bad ran number 2 or weights'')')
 
       write (*,*) 'Random Number = ', x
       write (*,'(2x,''wts:'',10f10.4)') (wt(i1,i2,i),i=1,n)
@@ -107,36 +113,10 @@ c     Get random number
       end
 
 c ----------------------------
-      subroutine GetRandom3 ( iseed, n, wt, i1, i2, i3, iSave, n1, n2, n3 )
-
-      include 'tornado.H'
-
-      real wt(n1, n2, n3, MAXPARAM), x
-      integer n1, n2, n3
-      
-c     Get random number
-      x = ran1( iseed )
-
-      do i=1,n
-        if ( x .le. wt(i1,i2,i3,i) ) then
-          iSave = i
-          return
-        endif
-      enddo
-      
-      write (*,*) ' Get Random Number 3'
-      write (*,'( 2x,''Error - bad ran number 3 or weights'')')
-
-      write (*,*) 'Random Number = ', x
-      write (*,'(2x,''wts:'',10f10.4)') (wt(i1,i2,i3,i),i=1,n)
-      write (*,'( 5i5)') n, i1, i2, i3
-
-      stop 99
-      end
-
-c ----------------------------
 
       function Ran1 ( idum )
+
+      implicit none
 
 c     Random number generator, From numerical recipes
       integer idum, ia, im, iq, ir, ntab, ndiv
@@ -167,12 +147,13 @@ c     Random number generator, From numerical recipes
       return
       end
 
-
 c ----------------------------------------------------------------------
 
-
-
       subroutine CheckDim ( n, nMax, name )
+      
+      implicit none
+     
+      integer n, nMax
       character*80 name
       
       if ( n .gt. nMax ) then
@@ -186,7 +167,11 @@ c ----------------------------------------------------------------------
 c --------------------------
 
       subroutine CheckWt ( x, n, fName, name )
-      real x(1)
+      
+      implicit none
+      
+      integer i, n
+      real x(1), sum
       character*80 name, fName
       
       sum = 0.
@@ -204,33 +189,6 @@ c --------------------------
       end
 
 c --------------------------
-
-      subroutine CheckWt1 ( x, n, j, n1, fName, name  )
-      real x(n1,1), delta
-      character*80 fName, name
-      
-      sum = 0.
-      do i=1,n
-        sum = sum + x(j,i)
-      enddo
-      delta = abs(sum - 1.0)
-      if ( delta .gt. 0.01 ) then
-        write (*,*) ' CheckWt1 Subroutine.'
-        write (*,'( 2x,''Error -- Weights do not sum to unity'')')
-        write (*,'( 2x,a80)') name
-        write (*,'( 2x,a80)') fName
-        write (*,*) ' Sum = ', sum
-        do k=1,n
-           write (*,*) k,x(j,k)
-        enddo
-        stop 99
-      endif
-      return
-      end
-      
-      
-c --------------------------
-C
 C      ________________________________________________________
 C     |                                                        |
 C     |            SORT AN ARRAY IN INCREASING ORDER           |
@@ -249,8 +207,12 @@ C     |         X     --SORTED ARRAY                           |
 C     |________________________________________________________|
 C
       SUBROUTINE SORT(X,Y,N)
+      
+      implicit none
+
+      INTEGER I,J,K,L,M,N      
       REAL X(1),Y(1),S,T
-      INTEGER I,J,K,L,M,N
+
       I = 1
 10    K = I
 20    J = I
